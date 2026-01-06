@@ -193,15 +193,26 @@ document.getElementById('clearHistory').addEventListener('click', () => {
 document.getElementById('downloadPDF').addEventListener('click', () => {
     const resultsSection = document.getElementById('resultsSection');
     
+    // Clone the section to avoid modifying original
+    const clone = resultsSection.cloneNode(true);
+    clone.style.display = 'block';
+    clone.style.background = '#ffffff';
+    clone.style.padding = '20px';
+    
     const opt = {
         margin: 10,
         filename: `tree-carbon-calculation-${Date.now()}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
+        html2canvas: { 
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#ffffff'
+        },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    html2pdf().set(opt).from(resultsSection).save();
+    html2pdf().set(opt).from(clone).save();
 });
 
 // Share functionality

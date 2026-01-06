@@ -1,15 +1,16 @@
 // Service Worker for PWA
-const CACHE_NAME = 'ecotree-tracker-v1';
+const CACHE_NAME = 'ecotree-tracker-v2';
+const BASE_PATH = '/eco-tree-tracker/';
 const urlsToCache = [
-  './',
-  './index.html',
-  './styles.css',
-  './app.js',
-  './calculator.js',
-  './tree-data.js',
-  './firebase-config.js',
-  './logo.svg',
-  './favicon.svg',
+  BASE_PATH,
+  BASE_PATH + 'index.html',
+  BASE_PATH + 'styles.css',
+  BASE_PATH + 'app.js',
+  BASE_PATH + 'calculator.js',
+  BASE_PATH + 'tree-data.js',
+  BASE_PATH + 'firebase-config.js',
+  BASE_PATH + 'logo.svg',
+  BASE_PATH + 'favicon.svg',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'
 ];
@@ -54,4 +55,6 @@ self.addEventListener('activate', event => {
       );
     })
   );
+  // Immediately take control of all pages
+  return self.clients.claim();
 });
