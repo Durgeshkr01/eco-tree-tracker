@@ -1,15 +1,15 @@
 // Service Worker for PWA
 const CACHE_NAME = 'ecotree-tracker-v1';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/styles.css',
-  '/app.js',
-  '/calculator.js',
-  '/tree-data.js',
-  '/firebase-config.js',
-  '/logo.svg',
-  '/favicon.svg',
+  './',
+  './index.html',
+  './styles.css',
+  './app.js',
+  './calculator.js',
+  './tree-data.js',
+  './firebase-config.js',
+  './logo.svg',
+  './favicon.svg',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js'
 ];
