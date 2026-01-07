@@ -10,6 +10,10 @@
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- HTML2PDF Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
     <!-- Header -->
@@ -39,9 +43,11 @@
                     <label for="treeSpecies">
                         <i class="fas fa-leaf"></i> Tree Species
                     </label>
-                    <select id="treeSpecies" required>
+                    <input type="text" id="treeSearch" placeholder="Search tree species..." autocomplete="off">
+                    <select id="treeSpecies" required size="5" style="display:none;">
                         <option value="">Select Tree Species</option>
                     </select>
+                    <div id="treeDropdown" class="tree-dropdown"></div>
                 </div>
 
                 <!-- Height Input -->
@@ -296,6 +302,52 @@
             console.log('✅ EcoTree Tracker installed successfully!');
             installBtn.style.display = 'none';
         });
+        
+        // Listen for service worker updates
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', event => {
+                if (event.data && event.data.type === 'UPDATE_AVAILABLE') {
+                    showUpdateNotification(event.data.version);
+                }
+            });
+            
+            // Check for updates on page load
+            navigator.serviceWorker.ready.then(registration => {
+                registration.update();
+            });
+        }
+        
+        // Show update notification
+        function showUpdateNotification(version) {
+            const notification = document.createElement('div');
+            notification.id = 'updateNotification';
+            notification.innerHTML = `
+                <div style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
+                            background: linear-gradient(135deg, #2ecc71, #27ae60); color: white; 
+                            padding: 15px 25px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                            display: flex; align-items: center; gap: 15px; z-index: 10000;
+                            animation: slideUp 0.5s ease-out;">
+                    <div>
+                        <strong>🎉 New Update Available!</strong>
+                        <p style="margin: 5px 0 0 0; font-size: 0.9rem;">Version ${version} - Refresh to update</p>
+                    </div>
+                    <button onclick="location.reload()" style="background: white; color: #27ae60; border: none; 
+                            padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                        Update Now
+                    </button>
+                    <button onclick="this.parentElement.parentElement.remove()" style="background: transparent; 
+                            color: white; border: 1px solid white; padding: 8px 15px; border-radius: 8px; 
+                            cursor: pointer;">Later</button>
+                </div>
+            `;
+            document.body.appendChild(notification);
+        }
     </script>
+    <style>
+        @keyframes slideUp {
+            from { transform: translateX(-50%) translateY(100px); opacity: 0; }
+            to { transform: translateX(-50%) translateY(0); opacity: 1; }
+        }
+    </style>
 </body>
 </html>
