@@ -119,12 +119,12 @@ function performCalculation() {
     const heightUnit = document.getElementById('heightUnit').value;
     const dbhValue = parseFloat(document.getElementById('dbh').value);
     const dbhUnit = document.getElementById('dbhUnit').value;
-    const age = document.getElementById('age').value || 'N/A';
-    const location = document.getElementById('location').value || 'N/A';
+    const age = document.getElementById('age')?.value || 'N/A';
+    const location = document.getElementById('location')?.value || 'N/A';
 
-    // Validate inputs
-    if (!speciesIndex || !heightValue || !dbhValue) {
-        alert('Please fill in all required fields!');
+    // Validate inputs (speciesIndex can be 0, so check for null/undefined)
+    if (speciesIndex === null || speciesIndex === undefined || !heightValue || !dbhValue) {
+        alert('Please fill in Tree Species, Height and DBH!');
         return;
     }
 
@@ -173,6 +173,17 @@ function displayResults(treeData, results, age, location) {
     document.getElementById('peopleEquivalent').textContent = results.equivalents.people;
     document.getElementById('carEquivalent').textContent = results.equivalents.carKm;
     document.getElementById('homeEquivalent').textContent = results.equivalents.homeDays;
+
+    // Display tree information for agriculture students
+    const treeInfoCard = document.getElementById('treeInfoCard');
+    if (treeData.info) {
+        document.getElementById('treeUses').textContent = treeData.info.uses;
+        document.getElementById('treeBenefits').textContent = treeData.info.benefits;
+        document.getElementById('treeFact').textContent = treeData.info.fact;
+        treeInfoCard.style.display = 'block';
+    } else {
+        treeInfoCard.style.display = 'none';
+    }
 
     // Add animation
     animateResults();

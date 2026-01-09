@@ -5,7 +5,7 @@ Calculate tree's carbon absorption, oxygen production & environmental impact
 ## Features ✨
 
 - 🌳 **50+ Indian Tree Species** database
-- 📊 **Scientific Calculations** - Based on research formula (AGB = 34.4703 - 8.0671×D + 0.6589×D²)
+- 📊 **Industry-Standard Calculations** - Based on validated allometric equations (Chave et al. 2005, IPCC Guidelines)
 - 💨 **CO₂ & Oxygen Tracking** - Annual sequestration & production
 - 💰 **Economic Value** - Carbon credit calculations in ₹
 - 📱 **PWA Support** - Install on phone/desktop
