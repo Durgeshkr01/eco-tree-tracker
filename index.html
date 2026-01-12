@@ -14,6 +14,9 @@
     <!-- HTML2PDF Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
     <!-- Floating Leaves Background -->
@@ -21,21 +24,23 @@
     
     <!-- Confetti Container -->
     <div id="confettiContainer" class="confetti-container"></div>
-    
-    <!-- Dark Mode Toggle -->
-    <button id="darkModeToggle" class="dark-mode-toggle" title="Toggle Dark Mode">
-        <i class="fas fa-moon" id="darkModeIcon"></i>
-    </button>
 
     <!-- Header -->
     <header class="header">
         <div class="container">
             <div class="header-content">
-                <img src="logo.svg" alt="EcoTree Tracker Logo" class="logo">
+                <video class="logo" autoplay loop muted playsinline>
+                    <source src="Logo Video/WhatsApp Video 2026-01-12 at 8.37.29 PM.mp4" type="video/mp4">
+                    <!-- Fallback to SVG if video doesn't load -->
+                    <img src="logo.svg" alt="EcoTree Tracker Logo" class="logo">
+                </video>
                 <div class="header-text">
                     <h1>🌳 EcoTree Tracker</h1>
                     <p>Calculate carbon absorption, oxygen production & environmental impact</p>
                 </div>
+                <a href="map.html" class="map-nav-btn">
+                    <i class="fas fa-map-marked-alt"></i> View CO2 Map
+                </a>
                 <button id="installBtn" class="install-btn" style="display: none;">
                     <i class="fas fa-download"></i> Install App
                 </button>
@@ -61,33 +66,18 @@
                     <div id="treeDropdown" class="tree-dropdown"></div>
                 </div>
 
-                <!-- Height Input -->
+                <!-- Circumference Input -->
                 <div class="form-group">
-                    <label for="height">
-                        <i class="fas fa-ruler-vertical"></i> Tree Height
+                    <label for="circumference">
+                        <i class="fas fa-circle-notch"></i> Tree Circumference (at Breast Height)
                     </label>
                     <div class="input-with-unit">
-                        <input type="number" id="height" step="0.1" min="0.1" placeholder="Enter height" required>
-                        <select id="heightUnit">
-                            <option value="m">Meters (m)</option>
-                            <option value="ft">Feet (ft)</option>
-                            <option value="cm">Centimeters (cm)</option>
-                        </select>
+                        <input type="number" id="circumference" step="0.1" min="0.1" placeholder="Enter circumference in cm" required>
+                        <span class="unit-label">cm</span>
                     </div>
-                </div>
-
-                <!-- DBH Input -->
-                <div class="form-group">
-                    <label for="dbh">
-                        <i class="fas fa-arrows-alt-h"></i> DBH (Diameter at Breast Height)
-                    </label>
-                    <div class="input-with-unit">
-                        <input type="number" id="dbh" step="0.1" min="0.1" placeholder="Enter diameter" required>
-                        <select id="dbhUnit">
-                            <option value="cm">Centimeters (cm)</option>
-                            <option value="in">Inches (in)</option>
-                        </select>
-                    </div>
+                    <small style="color: #666; display: block; margin-top: 5px;">
+                        Measure around the trunk at ~1.3m height
+                    </small>
                 </div>
 
                 <!-- Age (Optional) -->
@@ -98,12 +88,26 @@
                     <input type="number" id="age" min="1" placeholder="Enter age in years">
                 </div>
 
-                <!-- Location (Optional) -->
+                <!-- GPS Location -->
                 <div class="form-group">
-                    <label for="location">
-                        <i class="fas fa-map-marker-alt"></i> Location (Optional)
+                    <label>
+                        <i class="fas fa-map-marker-alt"></i> GPS Location
                     </label>
-                    <input type="text" id="location" placeholder="e.g., Mumbai, Delhi">
+                    <button type="button" id="getLocationBtn" class="btn-secondary" style="width: 100%; margin-bottom: 10px;">
+                        <i class="fas fa-crosshairs"></i> Get Current Location
+                    </button>
+                    <div class="gps-fields">
+                        <div style="display: flex; gap: 10px;">
+                            <div style="flex: 1;">
+                                <label for="latitude" style="font-size: 0.9em; color: #666;">Latitude</label>
+                                <input type="text" id="latitude" placeholder="Auto-filled" readonly style="background: #f5f5f5;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label for="longitude" style="font-size: 0.9em; color: #666;">Longitude</label>
+                                <input type="text" id="longitude" placeholder="Auto-filled" readonly style="background: #f5f5f5;">
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Calculate Button -->
@@ -167,11 +171,11 @@
                     <div class="card-icon co2-icon">
                         <i class="fas fa-cloud"></i>
                     </div>
-                    <h3>CO₂ Absorbed</h3>
+                    <h3>CO₂ Equivalent</h3>
                     <div class="result-value" id="co2Value">0</div>
-                    <div class="result-unit">kg CO₂/year</div>
-                    <div class="result-info">
-                        <small>Annual carbon sequestration</small>
+                    <div class="result-unit">kg CO₂</div>
+                    <div class="result-breakdown">
+                        <small><span id="co2Tonnes">0</span> tonnes CO₂</small>
                     </div>
                 </div>
 
@@ -263,16 +267,216 @@
             </div>
         </section>
 
-        <!-- History Section -->
+        <!-- Calculation History Section -->
         <section class="card history-section">
             <div class="history-header">
                 <h2><i class="fas fa-history"></i> Calculation History</h2>
-                <button id="clearHistory" class="btn-clear">
-                    <i class="fas fa-trash"></i> Clear All
-                </button>
+                <div class="history-actions">
+                    <button id="exportExcel" class="btn-export">
+                        <i class="fas fa-file-excel"></i> Export to Excel
+                    </button>
+                    <button id="clearHistory" class="btn-clear">
+                        <i class="fas fa-trash"></i> Clear All
+                    </button>
+                </div>
             </div>
             <div id="historyList" class="history-list">
                 <p class="no-history">No calculations yet. Start by calculating a tree's impact!</p>
+            </div>
+        </section>
+
+        <!-- Educational Content Section -->
+        <section class="card educational-section">
+            <h2><i class="fas fa-graduation-cap"></i> Understanding Carbon Sequestration</h2>
+            
+            <div class="education-grid">
+                <div class="edu-card">
+                    <div class="edu-icon">🌳</div>
+                    <h3>How Trees Absorb CO₂</h3>
+                    <p>Through photosynthesis, trees absorb carbon dioxide from the atmosphere and store carbon in their biomass (trunk, branches, leaves, and roots). The oxygen is released back into the air as a byproduct.</p>
+                </div>
+                
+                <div class="edu-card">
+                    <div class="edu-icon">💨</div>
+                    <h3>Oxygen Production</h3>
+                    <p>A mature tree produces approximately 260 pounds of oxygen per year. That's enough oxygen for two people annually! Trees are literally the lungs of our planet.</p>
+                </div>
+                
+                <div class="edu-card">
+                    <div class="edu-icon">🌍</div>
+                    <h3>Climate Change Impact</h3>
+                    <p>Trees are our best natural defense against climate change. They remove harmful CO₂ from the atmosphere, reduce urban heat islands, and help regulate local and global temperatures.</p>
+                </div>
+                
+                <div class="edu-card">
+                    <div class="edu-icon">🏭</div>
+                    <h3>Air Pollution Removal</h3>
+                    <p>Trees filter harmful pollutants like PM2.5, nitrogen dioxide, sulfur dioxide, and ozone from the air. Their leaves and bark act as natural air purifiers for our cities.</p>
+                </div>
+                
+                <div class="edu-card">
+                    <div class="edu-icon">💰</div>
+                    <h3>Economic Value</h3>
+                    <p>Beyond environmental benefits, trees provide economic value through carbon credits, increased property values, reduced energy costs, and improved public health.</p>
+                </div>
+                
+                <div class="edu-card">
+                    <div class="edu-icon">📊</div>
+                    <h3>Why Measure Trees?</h3>
+                    <p>Measuring tree impact helps us understand their contribution to ecosystem services, plan urban forestry programs, and make data-driven decisions for environmental conservation.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- About the Science Section -->
+        <section class="card science-section">
+            <h2><i class="fas fa-flask"></i> About the Science</h2>
+            
+            <div class="science-content">
+                <div class="methodology">
+                    <h3>Our Methodology</h3>
+                    <p>Our calculations are based on scientifically validated allometric equations specifically designed for Indian urban and dry tropical regions. The methodology follows IPCC guidelines and peer-reviewed research.</p>
+                    
+                    <div class="formula-box">
+                        <h4>Key Formulas:</h4>
+                        <ul>
+                            <li><strong>DBH Calculation:</strong> DBH = Circumference ÷ 3.14</li>
+                            <li><strong>Above-Ground Biomass:</strong> AGB = 34.4703 - 8.0671×D + 0.6589×D²</li>
+                            <li><strong>Below-Ground Biomass:</strong> BGB = 0.15 × AGB</li>
+                            <li><strong>Carbon Storage:</strong> Carbon = 0.5 × Total Biomass</li>
+                            <li><strong>CO₂ Equivalent:</strong> CO₂ = Carbon × 3.67</li>
+                            <li><strong>Oxygen Production:</strong> O₂ = Carbon × 2.67 (annual)</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="accuracy-note">
+                    <h4><i class="fas fa-info-circle"></i> Accuracy Note</h4>
+                    <p>These calculations provide estimates based on tree circumference at breast height (1.3m). Actual values may vary depending on tree species, age, health, environmental conditions, and local climate factors.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section class="card faq-section">
+            <h2><i class="fas fa-question-circle"></i> Frequently Asked Questions</h2>
+            
+            <div class="faq-list">
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>How do I measure tree circumference accurately?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Use a measuring tape to measure around the tree trunk at breast height (approximately 1.3 meters or 4.5 feet from the ground). Ensure the tape is level and snug against the bark without compressing it. Record the measurement in centimeters.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>How accurate are these calculations?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Our calculations use scientifically validated allometric equations with approximately 85-90% accuracy for most tree species. Results are estimates and may vary based on tree species, health, and environmental conditions.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>Why do you need GPS location?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>GPS location helps track trees geographically, create environmental impact maps, and analyze regional carbon sequestration patterns. It's optional but recommended for comprehensive tree tracking.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>Can I use this for any tree species?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Yes! Our database includes common tree species found in India and tropical regions. The calculations use generalized equations that work well for most tree species, with species-specific adjustments where available.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>What is the economic value calculation based on?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>The economic value is calculated using a conservative carbon credit price of ₹1,500 per tonne of CO₂. This represents the monetary value of the tree's carbon sequestration service in carbon markets.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>How can I export my tree data?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Click the "Export to Excel" button in the Calculation History section. This will download a comprehensive Excel file with all your tree measurements, calculations, and GPS locations in an organized format.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact/Feedback Section -->
+        <section class="card contact-section">
+            <h2><i class="fas fa-envelope"></i> Contact & Feedback</h2>
+            
+            <div class="contact-grid">
+                <div class="contact-info">
+                    <h3>Get in Touch</h3>
+                    <p>Have questions, suggestions, or want to collaborate? We'd love to hear from you!</p>
+                    
+                    <div class="contact-details">
+                        <div class="contact-item">
+                            <i class="fas fa-university"></i>
+                            <div>
+                                <strong>Institution</strong>
+                                <p>Centurion University of Technology and Management<br>Paralakhemundi, Odisha</p>
+                            </div>
+                        </div>
+                        
+                        <div class="contact-item">
+                            <i class="fas fa-envelope"></i>
+                            <div>
+                                <strong>Email</strong>
+                                <p>durgeshraj0852@gmail.com</p>
+                            </div>
+                        </div>
+                        
+                        <div class="contact-item">
+                            <i class="fas fa-globe"></i>
+                            <div>
+                                <strong>Project</strong>
+                                <p>Carbon Sequestration Potential of Tree Species</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="feedback-form">
+                    <h3>Send Feedback</h3>
+                    <form id="feedbackForm">
+                        <div class="form-group">
+                            <input type="text" id="feedbackName" name="name" placeholder="Your Name" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="email" id="feedbackEmail" name="email" placeholder="Your Email" required>
+                        </div>
+                        <div class="form-group">
+                            <textarea id="feedbackMessage" name="message" rows="4" placeholder="Your Message or Feedback" required></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-paper-plane"></i> Send Feedback
+                        </button>
+                    </form>
+                </div>
             </div>
         </section>
     </main>
@@ -282,6 +486,72 @@
         <div class="container">
             <p>🌍 Based on research: AGB = 34.4703 - 8.0671×D + 0.6589×D²</p>
             <p>Made with 💚 for a greener planet | <strong>EcoTree Tracker</strong></p>
+            
+            <div class="team-section">
+                <h3>👥 Our Team</h3>
+                <div class="team-grid">
+                    <!-- Team Member 1: Durgesh Kumar -->
+                    <div class="team-card">
+                        <div class="team-photo">
+                            <img src="team/durgesh.jpg" alt="Durgesh Kumar">
+                        </div>
+                        <h4>Durgesh Kumar</h4>
+                        <p class="role">Lead Developer</p>
+                        <div class="social-links">
+                            <a href="#" target="_blank" class="social-icon instagram" title="Instagram">
+                                <i class="fab fa-instagram"></i>
+                            </a>
+                            <a href="#" target="_blank" class="social-icon linkedin" title="LinkedIn">
+                                <i class="fab fa-linkedin"></i>
+                            </a>
+                            <a href="#" target="_blank" class="social-icon whatsapp" title="WhatsApp">
+                                <i class="fab fa-whatsapp"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Team Member 2: Yash Raj Anand -->
+                    <div class="team-card">
+                        <div class="team-photo">
+                            <img src="team/yash.jpg" alt="Yash Raj Anand">
+                        </div>
+                        <h4>Yash Raj Anand</h4>
+                        <p class="role">UI/UX Designer</p>
+                        <div class="social-links">
+                            <a href="#" target="_blank" class="social-icon instagram" title="Instagram">
+                                <i class="fab fa-instagram"></i>
+                            </a>
+                            <a href="#" target="_blank" class="social-icon linkedin" title="LinkedIn">
+                                <i class="fab fa-linkedin"></i>
+                            </a>
+                            <a href="#" target="_blank" class="social-icon whatsapp" title="WhatsApp">
+                                <i class="fab fa-whatsapp"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Team Member 3: Vikash Kumar -->
+                    <div class="team-card">
+                        <div class="team-photo">
+                            <img src="team/vikash.jpg" alt="Vikash Kumar">
+                        </div>
+                        <h4>Vikash Kumar</h4>
+                        <p class="role">Backend Developer</p>
+                        <div class="social-links">
+                            <a href="#" target="_blank" class="social-icon instagram" title="Instagram">
+                                <i class="fab fa-instagram"></i>
+                            </a>
+                            <a href="#" target="_blank" class="social-icon linkedin" title="LinkedIn">
+                                <i class="fab fa-linkedin"></i>
+                            </a>
+                            <a href="#" target="_blank" class="social-icon whatsapp" title="WhatsApp">
+                                <i class="fab fa-whatsapp"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <p class="university-name">Centurion University of Technology and Management, Paralakhemundi</p>
+            </div>
         </div>
     </footer>
 

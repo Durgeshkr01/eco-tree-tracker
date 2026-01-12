@@ -7,7 +7,45 @@ document.addEventListener('DOMContentLoaded', () => {
     loadHistory();
     initializeTreeSearch();
     animatePageLoad();
+    initializeGPSLocation();
 });
+
+// Initialize GPS Location functionality
+function initializeGPSLocation() {
+    const getLocationBtn = document.getElementById('getLocationBtn');
+    
+    getLocationBtn.addEventListener('click', () => {
+        if (!navigator.geolocation) {
+            alert('Geolocation is not supported by your browser');
+            return;
+        }
+        
+        getLocationBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting Location...';
+        getLocationBtn.disabled = true;
+        
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude.toFixed(6);
+                const lon = position.coords.longitude.toFixed(6);
+                
+                document.getElementById('latitude').value = lat;
+                document.getElementById('longitude').value = lon;
+                
+                getLocationBtn.innerHTML = '<i class="fas fa-check"></i> Location Captured';
+                getLocationBtn.disabled = false;
+                
+                setTimeout(() => {
+                    getLocationBtn.innerHTML = '<i class="fas fa-crosshairs"></i> Get Current Location';
+                }, 2000);
+            },
+            (error) => {
+                alert('Unable to get location: ' + error.message);
+                getLocationBtn.innerHTML = '<i class="fas fa-crosshairs"></i> Get Current Location';
+                getLocationBtn.disabled = false;
+            }
+        );
+    });
+}
 
 // Animate page elements on load
 function animatePageLoad() {
@@ -115,16 +153,14 @@ document.getElementById('treeForm').addEventListener('submit', (e) => {
 function performCalculation() {
     // Get form values
     const speciesIndex = selectedTreeIndex;
-    const heightValue = parseFloat(document.getElementById('height').value);
-    const heightUnit = document.getElementById('heightUnit').value;
-    const dbhValue = parseFloat(document.getElementById('dbh').value);
-    const dbhUnit = document.getElementById('dbhUnit').value;
+    const circumference = parseFloat(document.getElementById('circumference').value);
     const age = document.getElementById('age')?.value || 'N/A';
-    const location = document.getElementById('location')?.value || 'N/A';
+    const latitude = document.getElementById('latitude')?.value || 'Not captured';
+    const longitude = document.getElementById('longitude')?.value || 'Not captured';
 
     // Validate inputs (speciesIndex can be 0, so check for null/undefined)
-    if (speciesIndex === null || speciesIndex === undefined || !heightValue || !dbhValue) {
-        alert('Please fill in Tree Species, Height and DBH!');
+    if (speciesIndex === null || speciesIndex === undefined || !circumference) {
+        alert('Please fill in Tree Species and Circumference!');
         return;
     }
 
@@ -132,20 +168,20 @@ function performCalculation() {
     const treeData = getTreeData(speciesIndex);
 
     // Calculate results
-    const results = calculator.calculate(heightValue, heightUnit, dbhValue, dbhUnit);
+    const results = calculator.calculate(circumference);
 
     // Display results
-    displayResults(treeData, results, age, location);
+    displayResults(treeData, results, age, latitude, longitude);
 
     // Save to history
-    saveToHistory(treeData, results, age, location);
+    saveToHistory(treeData, results, age, latitude, longitude);
 
     // Scroll to results
     document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
 }
 
 // Display results in the UI
-function displayResults(treeData, results, age, location) {
+function displayResults(treeData, results, age, latitude, longitude) {
     // Show results section
     document.getElementById('resultsSection').style.display = 'block';
 
@@ -153,10 +189,10 @@ function displayResults(treeData, results, age, location) {
     document.getElementById('treeName').textContent = treeData.name;
     document.getElementById('treeDetails').innerHTML = `
         <p><strong>Scientific Name:</strong> ${treeData.scientific}</p>
-        <p><strong>Height:</strong> ${results.inputs.height} m</p>
-        <p><strong>DBH:</strong> ${results.inputs.dbh} cm</p>
+        <p><strong>Circumference:</strong> ${results.inputs.circumference} cm</p>
+        <p><strong>DBH (Calculated):</strong> ${results.inputs.dbh} cm</p>
         <p><strong>Age:</strong> ${age} years</p>
-        <p><strong>Location:</strong> ${location}</p>
+        <p><strong>GPS Location:</strong> ${latitude}, ${longitude}</p>
     `;
 
     // Update result cards
@@ -165,6 +201,7 @@ function displayResults(treeData, results, age, location) {
     document.getElementById('bgbValue').textContent = results.biomass.belowGround;
     document.getElementById('carbonValue').textContent = results.carbon;
     document.getElementById('co2Value').textContent = results.co2;
+    document.getElementById('co2Tonnes').textContent = (parseFloat(results.co2) / 1000).toFixed(3);
     document.getElementById('oxygenValue').textContent = results.oxygen;
     document.getElementById('pollutionValue').textContent = results.pollution;
     document.getElementById('economicValue').textContent = results.economicValue;
@@ -201,13 +238,18 @@ function animateResults() {
 }
 
 // Save calculation to history
-function saveToHistory(treeData, results, age, location) {
+function saveToHistory(treeData, results, age, latitude, longitude) {
     const calculation = {
         id: Date.now(),
         timestamp: new Date().toLocaleString(),
         tree: treeData.name,
+        species: treeData.name,  // For map.js compatibility
         age: age,
-        location: location,
+        latitude: latitude,
+        longitude: longitude,
+        circumference: parseFloat(document.getElementById('circumference').value),
+        co2: results.co2,
+        oxygen: results.oxygen,
         results: results
     };
 
@@ -218,8 +260,9 @@ function saveToHistory(treeData, results, age, location) {
         calculationHistory = calculationHistory.slice(0, 20);
     }
 
-    // Save to localStorage
+    // Save to localStorage (both keys for compatibility)
     localStorage.setItem('treeCalculations', JSON.stringify(calculationHistory));
+    localStorage.setItem('treeHistory', JSON.stringify(calculationHistory));
 
     // Update history display
     displayHistory();
@@ -247,7 +290,7 @@ function displayHistory() {
         <div class="history-item" onclick="loadCalculation(${calc.id})">
             <div class="history-info">
                 <h4>🌳 ${calc.tree}</h4>
-                <p>${calc.timestamp} • ${calc.location}</p>
+                <p>${calc.timestamp} • ${calc.latitude || 'N/A'}, ${calc.longitude || 'N/A'}</p>
             </div>
             <div class="history-stats">
                 <div class="stat-badge">
@@ -276,7 +319,7 @@ function loadCalculation(id) {
     const treeData = treeSpeciesData[treeIndex];
 
     // Display the calculation
-    displayResults(treeData, calc.results, calc.age, calc.location);
+    displayResults(treeData, calc.results, calc.age, calc.latitude || 'N/A', calc.longitude || 'N/A');
 }
 
 // Delete a calculation from history
@@ -297,6 +340,79 @@ document.getElementById('clearHistory').addEventListener('click', () => {
         localStorage.removeItem('treeCalculations');
         displayHistory();
     }
+});
+
+// Export history to Excel
+document.getElementById('exportExcel').addEventListener('click', () => {
+    if (calculationHistory.length === 0) {
+        alert('No calculation history to export!');
+        return;
+    }
+
+    // Prepare data for Excel
+    const excelData = calculationHistory.map((calc, index) => {
+        return {
+            'Sr. No.': index + 1,
+            'Date & Time': calc.timestamp,
+            'Tree Name': calc.tree,
+            'Tree Age (years)': calc.age,
+            'Latitude': calc.latitude || 'N/A',
+            'Longitude': calc.longitude || 'N/A',
+            'Circumference (cm)': calc.results.inputs.circumference,
+            'DBH (cm)': calc.results.inputs.dbh,
+            'Total Biomass (kg)': calc.results.biomass.total,
+            'Above-Ground Biomass (kg)': calc.results.biomass.aboveGround,
+            'Below-Ground Biomass (kg)': calc.results.biomass.belowGround,
+            'Carbon Stored (kg C)': calc.results.carbon,
+            'CO₂ Equivalent (kg)': calc.results.co2,
+            'CO₂ Equivalent (tonnes)': (parseFloat(calc.results.co2) / 1000).toFixed(3),
+            'Oxygen Produced (kg/year)': calc.results.oxygen,
+            'Pollution Absorbed (kg/year)': calc.results.pollution,
+            'Economic Value (₹/year)': calc.results.economicValue,
+            'People Oxygen Equivalent': calc.results.equivalents.people,
+            'Car KM Offset': calc.results.equivalents.carKm,
+            'Home Days Offset': calc.results.equivalents.homeDays
+        };
+    });
+
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(excelData);
+
+    // Set column widths
+    ws['!cols'] = [
+        { wch: 8 },  // Sr. No.
+        { wch: 20 }, // Date & Time
+        { wch: 25 }, // Tree Name
+        { wch: 15 }, // Age
+        { wch: 12 }, // Latitude
+        { wch: 12 }, // Longitude
+        { wch: 18 }, // Circumference
+        { wch: 12 }, // DBH
+        { wch: 20 }, // Total Biomass
+        { wch: 25 }, // AGB
+        { wch: 25 }, // BGB
+        { wch: 20 }, // Carbon
+        { wch: 20 }, // CO2 kg
+        { wch: 22 }, // CO2 tonnes
+        { wch: 25 }, // Oxygen
+        { wch: 25 }, // Pollution
+        { wch: 22 }, // Economic Value
+        { wch: 22 }, // People Oxygen
+        { wch: 15 }, // Car KM
+        { wch: 15 }  // Home Days
+    ];
+
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Tree Calculations');
+
+    // Generate filename with timestamp
+    const filename = `EcoTree_History_${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+    // Download file
+    XLSX.writeFile(wb, filename);
+    
+    alert(`Excel file "${filename}" downloaded successfully!`);
 });
 
 // Download PDF functionality
@@ -324,15 +440,15 @@ document.getElementById('downloadPDF').addEventListener('click', () => {
     const home = document.getElementById('homeEquivalent').textContent || '0';
     
     // Get tree details
-    const heightEl = document.querySelector('#treeDetails p:nth-child(2)');
+    const circumEl = document.querySelector('#treeDetails p:nth-child(2)');
     const dbhEl = document.querySelector('#treeDetails p:nth-child(3)');
     const ageEl = document.querySelector('#treeDetails p:nth-child(4)');
-    const locEl = document.querySelector('#treeDetails p:nth-child(5)');
+    const gpsEl = document.querySelector('#treeDetails p:nth-child(5)');
     
-    const height = heightEl ? heightEl.textContent : '';
+    const circumference = circumEl ? circumEl.textContent : '';
     const dbh = dbhEl ? dbhEl.textContent : '';
     const age = ageEl ? ageEl.textContent : '';
-    const location = locEl ? locEl.textContent : '';
+    const gpsLocation = gpsEl ? gpsEl.textContent : '';
     
     // Use jsPDF
     const { jsPDF } = window.jspdf;
@@ -374,10 +490,10 @@ document.getElementById('downloadPDF').addEventListener('click', () => {
     doc.setTextColor(...dark);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    doc.text(height, 20, y + 22);
+    doc.text(circumference, 20, y + 22);
     doc.text(dbh, 80, y + 22);
     doc.text(age, 20, y + 30);
-    doc.text(location, 80, y + 30);
+    doc.text(gpsLocation, 80, y + 30);
     
     y = 90;
     
@@ -500,18 +616,44 @@ document.getElementById('shareBtn').addEventListener('click', () => {
     }
 });
 
-// Auto-fill tree data when species is selected
-document.getElementById('treeSpecies').addEventListener('change', (e) => {
-    const index = e.target.value;
-    if (index) {
-        const tree = getTreeData(index);
+// Auto-fill tree data when species is selected (removed - no longer auto-filling)
+// Species selection now only updates the selected tree index
+
+// FAQ Accordion functionality
+document.querySelectorAll('.faq-question').forEach(button => {
+    button.addEventListener('click', () => {
+        const faqItem = button.parentElement;
+        const isActive = faqItem.classList.contains('active');
         
-        // Optional: Auto-fill with average values
-        if (!document.getElementById('height').value) {
-            document.getElementById('height').value = tree.avgHeight;
+        // Close all FAQ items
+        document.querySelectorAll('.faq-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // Toggle current item
+        if (!isActive) {
+            faqItem.classList.add('active');
         }
-        if (!document.getElementById('dbh').value) {
-            document.getElementById('dbh').value = tree.avgDBH;
-        }
-    }
+    });
 });
+
+// Feedback Form submission - Opens email client
+document.getElementById('feedbackForm')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    const name = document.getElementById('feedbackName').value;
+    const email = document.getElementById('feedbackEmail').value;
+    const message = document.getElementById('feedbackMessage').value;
+    
+    // Create mailto link
+    const subject = encodeURIComponent(`EcoTree Tracker Feedback from ${name}`);
+    const body = encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}\n\n---\nSent from EcoTree Tracker`);
+    
+    // Open email client
+    window.open(`mailto:durgeshraj0852@gmail.com?subject=${subject}&body=${body}`, '_blank');
+    
+    // Show message and reset form
+    alert(`Thank you ${name}! Your email client will open. Please click Send to submit your feedback.`);
+    e.target.reset();
+});
+

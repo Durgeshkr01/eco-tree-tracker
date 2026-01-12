@@ -4,28 +4,16 @@
 class TreeCalculator {
     constructor() {
         // Constants
-        this.CARBON_PRICE_PER_TON = 2000; // ₹2000 per ton CO2 (approximate)
+        this.CARBON_PRICE_PER_TON = 1500; // ₹1500 per ton CO2 (conservative Indian valuation)
         this.OXYGEN_PER_PERSON_YEAR = 730; // kg per person per year
         this.CAR_EMISSION_PER_KM = 0.12; // kg CO2 per km
         this.HOME_ENERGY_PER_DAY = 10; // kg CO2 per day
     }
 
-    // Convert units to standard (meters and cm)
-    convertHeight(value, unit) {
-        switch(unit) {
-            case 'm': return value;
-            case 'ft': return value * 0.3048;
-            case 'cm': return value / 100;
-            default: return value;
-        }
-    }
-
-    convertDBH(value, unit) {
-        switch(unit) {
-            case 'cm': return value;
-            case 'in': return value * 2.54;
-            default: return value;
-        }
+    // Convert Circumference to DBH (Diameter at Breast Height)
+    convertCircumferenceToDiamet(circumferenceCm) {
+        // Formula: DBH = Circumference / π
+        return circumferenceCm / 3.14;
     }
 
     // Calculate Above-Ground Biomass (AGB)
@@ -61,18 +49,17 @@ class TreeCalculator {
     }
 
     // Calculate Oxygen Production
-    calculateOxygen(co2) {
-        // Formula: O2 ≈ CO2 * 0.7 (approximate)
-        // Through photosynthesis: 6CO2 + 6H2O → C6H12O6 + 6O2
-        return co2 * 0.727; // More accurate ratio
+    calculateOxygen(carbon) {
+        // Formula: O2 = Carbon * 2.67 (per year)
+        // Scientific approximation used in urban forestry
+        return carbon * 2.67;
     }
 
     // Calculate Air Pollution Absorption
-    calculatePollutionAbsorption(height, dbh) {
-        // Estimation based on leaf area and tree size
-        // Larger trees absorb more pollutants (PM2.5, NO2, SO2)
-        const leafAreaFactor = (height * dbh) / 100;
-        return leafAreaFactor * 0.5; // kg/year
+    calculatePollutionAbsorption(co2) {
+        // Formula: Pollution Absorbed = 0.02 × CO2 Equivalent
+        // Represents PM2.5, NO₂, SO₂, O₃ absorption combined
+        return co2 * 0.02;
     }
 
     // Calculate Economic Value (Carbon Credits)
@@ -92,19 +79,24 @@ class TreeCalculator {
     }
 
     // Main calculation function
-    calculate(heightValue, heightUnit, dbhValue, dbhUnit) {
-        // Convert to standard units
-        const heightM = this.convertHeight(heightValue, heightUnit);
-        const dbhCm = this.convertDBH(dbhValue, dbhUnit);
+    calculate(circumferenceCm) {
+        // Step 1: Convert Circumference to DBH
+        const dbhCm = this.convertCircumferenceToDiamet(circumferenceCm);
 
-        // Perform calculations
+        // Step 2-6: Biomass and Carbon calculations
         const agb = this.calculateAGB(dbhCm);
         const bgb = this.calculateBGB(agb);
         const totalBiomass = this.calculateTotalBiomass(agb, bgb);
         const carbon = this.calculateCarbon(totalBiomass);
         const co2 = this.calculateCO2(carbon);
-        const oxygen = this.calculateOxygen(co2);
-        const pollution = this.calculatePollutionAbsorption(heightM, dbhCm);
+        
+        // Step 7: Oxygen production (using carbon, not CO2)
+        const oxygen = this.calculateOxygen(carbon);
+        
+        // Step 8: Pollution absorption (using CO2)
+        const pollution = this.calculatePollutionAbsorption(co2);
+        
+        // Step 9: Economic value
         const economicValue = this.calculateEconomicValue(co2);
         const equivalents = this.calculateEquivalents(co2, oxygen);
 
@@ -121,7 +113,7 @@ class TreeCalculator {
             economicValue: economicValue.toFixed(2),
             equivalents: equivalents,
             inputs: {
-                height: heightM.toFixed(2),
+                circumference: circumferenceCm.toFixed(2),
                 dbh: dbhCm.toFixed(2)
             }
         };
