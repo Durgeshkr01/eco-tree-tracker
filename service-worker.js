@@ -1,20 +1,27 @@
 // Service Worker for PWA
-const CACHE_NAME = 'ecotree-tracker-v5';
-const APP_VERSION = '2.1.0';
+const CACHE_NAME = 'ecotree-tracker-v6';
+const APP_VERSION = '3.0.0';
 const BASE_PATH = '/eco-tree-tracker/';
 const urlsToCache = [
   BASE_PATH,
   BASE_PATH + 'index.html',
+  BASE_PATH + 'map.html',
   BASE_PATH + 'styles.css',
   BASE_PATH + 'app.js',
   BASE_PATH + 'calculator.js',
+  BASE_PATH + 'map.js',
   BASE_PATH + 'tree-data.js',
   BASE_PATH + 'firebase-config.js',
   BASE_PATH + 'logo.svg',
   BASE_PATH + 'favicon.svg',
+  BASE_PATH + 'college-bg.jpeg',
+  BASE_PATH + 'college-bg2.jpeg',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
   'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+  'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css',
+  'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js',
+  'https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js'
 ];
 
 // Install event - cache files
