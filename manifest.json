@@ -1,7 +1,7 @@
 {
   "name": "EcoTree Tracker",
   "short_name": "EcoTree",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "description": "Calculate tree's carbon absorption, oxygen production & environmental impact",
   "start_url": "/eco-tree-tracker/",
   "scope": "/eco-tree-tracker/",
