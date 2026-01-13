@@ -1,6 +1,6 @@
 // Service Worker for PWA
-const CACHE_NAME = 'ecotree-tracker-v8';
-const APP_VERSION = '3.2.0';
+const CACHE_NAME = 'ecotree-tracker-v9';
+const APP_VERSION = '3.3.0';
 const BASE_PATH = '/eco-tree-tracker/';
 const urlsToCache = [
   BASE_PATH,
@@ -78,7 +78,7 @@ self.addEventListener('activate', event => {
         clients.forEach(client => {
           client.postMessage({
             type: 'UPDATE_AVAILABLE',
-            version: 'v3.0'
+            version: APP_VERSION
           });
         });
       });
