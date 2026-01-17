@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌳 EcoTree Tracker - Login</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* Animated Background */
+        .leaves-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        .leaf {
+            position: absolute;
+            opacity: 0.5;
+            animation: fall 10s linear infinite;
+        }
+
+        @keyframes fall {
+            0% {
+                transform: translateY(-100px) rotate(0deg);
+                opacity: 0.5;
+            }
+            100% {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .logo-section {
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .logo-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: bounce 2s ease-in-out infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .logo-section h1 {
+            color: white;
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .logo-section p {
+            color: rgba(255,255,255,0.9);
+            font-size: 1.2rem;
+        }
+
+        .login-options {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+            flex-wrap: wrap;
+            animation: fadeInUp 1s ease-out;
+        }
+
+        .option-card {
+            background: white;
+            padding: 50px 40px;
+            border-radius: 20px;
+            width: 300px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .option-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .option-card.admin {
+            border-top: 5px solid #667eea;
+        }
+
+        .option-card.student {
+            border-top: 5px solid #f5576c;
+        }
+
+        .option-icon {
+            font-size: 60px;
+            margin-bottom: 20px;
+        }
+
+        .option-card.admin .option-icon {
+            color: #667eea;
+        }
+
+        .option-card.student .option-icon {
+            color: #f5576c;
+        }
+
+        .option-card h2 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            color: #2d3436;
+        }
+
+        .option-card p {
+            color: #636e72;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .footer-text {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            color: rgba(255,255,255,0.8);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 768px) {
+            .logo-section h1 {
+                font-size: 2rem;
+            }
+
+            .login-options {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .option-card {
+                width: 90%;
+                max-width: 350px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="leaves-bg" id="leavesBg"></div>
+
+    <div class="container">
+        <!-- Logo Section -->
+        <div class="logo-section">
+            <div class="logo-icon">🌳</div>
+            <h1>EcoTree Tracker</h1>
+            <p>Calculate carbon absorption, oxygen production & environmental impact</p>
+        </div>
+
+        <!-- Login Options -->
+        <div class="login-options">
+            <!-- Admin Card -->
+            <a href="admin-login.html" class="option-card admin">
+                <div class="option-icon">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <h2>Faculty Login</h2>
+                <p>Access admin panel to manage students, generate access codes, and view all data</p>
+            </a>
+
+            <!-- Student Card -->
+            <a href="student-login.html" class="option-card student">
+                <div class="option-icon">
+                    <i class="fas fa-user-graduate"></i>
+                </div>
+                <h2>Student Login</h2>
+                <p>Enter your access code to start collecting tree data and environmental calculations</p>
+            </a>
+        </div>
+    </div>
+
+    <div class="footer-text">
+        <p>🌍 Making environmental impact visible • Tree by tree</p>
+    </div>
+
+    <script>
+        // Create falling leaves animation
+        const leavesBg = document.getElementById('leavesBg');
+        const leafEmojis = ['🍃', '🌿', '🍂', '🌱'];
+        
+        for (let i = 0; i < 15; i++) {
+            const leaf = document.createElement('div');
+            leaf.className = 'leaf';
+            leaf.textContent = leafEmojis[Math.floor(Math.random() * leafEmojis.length)];
+            leaf.style.left = Math.random() * 100 + '%';
+            leaf.style.animationDuration = (Math.random() * 5 + 5) + 's';
+            leaf.style.animationDelay = Math.random() * 5 + 's';
+            leaf.style.fontSize = (Math.random() * 20 + 20) + 'px';
+            leavesBg.appendChild(leaf);
+        }
+    </script>
+</body>
+</html>

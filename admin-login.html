@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎓 Faculty Login - EcoTree Tracker</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column;
+            align-items: center; 
+            justify-content: center; 
+        }
+        .back-btn {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.2);
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.3); }
+        .login-card { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 20px; 
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3); 
+            max-width: 400px; 
+            width: 90%; 
+            text-align: center; 
+        }
+        .logo-icon { font-size: 60px; margin-bottom: 20px; }
+        .login-card h1 { color: #667eea; margin-bottom: 10px; }
+        .login-card p { color: #666; margin-bottom: 30px; }
+        .form-group { margin-bottom: 20px; text-align: left; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; }
+        .form-group input { 
+            width: 100%; 
+            padding: 15px; 
+            border: 2px solid #e0e0e0; 
+            border-radius: 10px; 
+            font-size: 16px; 
+        }
+        .form-group input:focus { outline: none; border-color: #667eea; }
+        .btn-login { 
+            width: 100%; 
+            padding: 15px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            border: none; 
+            border-radius: 10px; 
+            font-size: 16px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: all 0.3s;
+        }
+        .btn-login:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(102,126,234,0.4); }
+        .error-msg { color: #e74c3c; margin-top: 15px; display: none; }
+        .success-msg { color: #27ae60; margin-top: 15px; display: none; }
+        .toggle-text { margin-top: 20px; color: #666; }
+        .toggle-text a { color: #667eea; cursor: pointer; text-decoration: none; font-weight: 600; }
+        .toggle-text a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <a href="login.html" class="back-btn"><i class="fas fa-arrow-left"></i> Back</a>
+    
+    <div class="login-card">
+        <div class="logo-icon">👨‍🏫</div>
+        <h1>Faculty Login</h1>
+        <p id="formTitle">Enter your credentials</p>
+        
+        <form id="adminForm">
+            <div class="form-group" id="nameGroup" style="display:none;">
+                <label><i class="fas fa-user"></i> Full Name</label>
+                <input type="text" id="adminName" placeholder="Enter your name">
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-user-circle"></i> Username</label>
+                <input type="text" id="adminUsername" placeholder="Enter username" required>
+            </div>
+            <div class="form-group">
+                <label><i class="fas fa-lock"></i> Password</label>
+                <input type="password" id="adminPassword" placeholder="Enter password" required>
+            </div>
+            <button type="submit" class="btn-login" id="submitBtn">
+                <i class="fas fa-sign-in-alt"></i> Login
+            </button>
+        </form>
+        
+        <p class="error-msg" id="errorMsg">Invalid credentials. Please try again.</p>
+        <p class="success-msg" id="successMsg">Account created successfully!</p>
+        
+        <p class="toggle-text">
+            <span id="toggleText">Don't have an account? <a id="toggleLink">Register</a></span>
+        </p>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB8_xAQJtvACs3F5qXGHnYMXY4dEldC2yA",
+            authDomain: "co2-calculatet.firebaseapp.com",
+            projectId: "co2-calculatet",
+            storageBucket: "co2-calculatet.firebasestorage.app",
+            messagingSenderId: "23756241592",
+            appId: "1:23756241592:web:e15f5f63b1147ed1d7524d",
+            measurementId: "G-P7D3R92Q4X"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let isRegisterMode = false;
+
+        // Toggle between login and register
+        document.getElementById('toggleLink').addEventListener('click', () => {
+            isRegisterMode = !isRegisterMode;
+            const nameGroup = document.getElementById('nameGroup');
+            const formTitle = document.getElementById('formTitle');
+            const submitBtn = document.getElementById('submitBtn');
+            const toggleText = document.getElementById('toggleText');
+
+            if (isRegisterMode) {
+                nameGroup.style.display = 'block';
+                formTitle.textContent = 'Create new faculty account';
+                submitBtn.innerHTML = '<i class="fas fa-user-plus"></i> Register';
+                toggleText.innerHTML = 'Already have an account? <a id="toggleLink">Login</a>';
+            } else {
+                nameGroup.style.display = 'none';
+                formTitle.textContent = 'Enter your credentials';
+                submitBtn.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login';
+                toggleText.innerHTML = 'Don\'t have an account? <a id="toggleLink">Register</a>';
+            }
+
+            // Re-attach event listener
+            document.getElementById('toggleLink').addEventListener('click', arguments.callee);
+            document.getElementById('errorMsg').style.display = 'none';
+            document.getElementById('successMsg').style.display = 'none';
+        });
+
+        // Form submission
+        document.getElementById('adminForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const username = document.getElementById('adminUsername').value.trim();
+            const password = document.getElementById('adminPassword').value;
+            const errorMsg = document.getElementById('errorMsg');
+            const successMsg = document.getElementById('successMsg');
+            
+            errorMsg.style.display = 'none';
+            successMsg.style.display = 'none';
+
+            try {
+                if (isRegisterMode) {
+                    // Register new admin
+                    const name = document.getElementById('adminName').value.trim();
+                    
+                    if (!name) {
+                        errorMsg.textContent = 'Please enter your name';
+                        errorMsg.style.display = 'block';
+                        return;
+                    }
+
+                    // Check if username already exists
+                    const adminRef = doc(db, 'admins', username);
+                    const adminSnap = await getDoc(adminRef);
+
+                    if (adminSnap.exists()) {
+                        errorMsg.textContent = 'Username already exists. Please choose another.';
+                        errorMsg.style.display = 'block';
+                        return;
+                    }
+
+                    // Create new admin
+                    await setDoc(adminRef, {
+                        name: name,
+                        username: username,
+                        password: password,
+                        createdAt: new Date().toISOString(),
+                        currentPass: null,
+                        passActive: false
+                    });
+
+                    successMsg.textContent = 'Account created! Logging in...';
+                    successMsg.style.display = 'block';
+
+                    setTimeout(() => {
+                        sessionStorage.setItem('adminSession', JSON.stringify({
+                            username: username,
+                            name: name,
+                            loginTime: new Date().toISOString()
+                        }));
+                        window.location.href = 'admin.html';
+                    }, 1500);
+
+                } else {
+                    // Login existing admin
+                    const adminRef = doc(db, 'admins', username);
+                    const adminSnap = await getDoc(adminRef);
+
+                    if (!adminSnap.exists() || adminSnap.data().password !== password) {
+                        errorMsg.textContent = 'Invalid username or password';
+                        errorMsg.style.display = 'block';
+                        return;
+                    }
+
+                    // Login successful
+                    const adminData = adminSnap.data();
+                    sessionStorage.setItem('adminSession', JSON.stringify({
+                        username: username,
+                        name: adminData.name,
+                        loginTime: new Date().toISOString()
+                    }));
+                    window.location.href = 'admin.html';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                
+                if (error.code === 'permission-denied') {
+                    errorMsg.textContent = '⚠️ Database access denied. Please contact administrator.';
+                } else if (error.code === 'unavailable') {
+                    errorMsg.textContent = '⚠️ Network error. Please check your internet connection.';
+                } else {
+                    errorMsg.textContent = 'Connection error. Please try again.';
+                }
+                
+                errorMsg.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

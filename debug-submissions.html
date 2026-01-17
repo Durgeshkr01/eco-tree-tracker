@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 Debug Submissions - EcoTree Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .debug-card {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #2c3e50; }
+        h2 { color: #34495e; margin-top: 0; }
+        .status { padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .warning { background: #fff3cd; color: #856404; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover { background: #2980b9; }
+        .btn-danger { background: #e74c3c; }
+        .btn-danger:hover { background: #c0392b; }
+        .btn-success { background: #27ae60; }
+        .btn-success:hover { background: #229954; }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th { background: #34495e; color: white; }
+        tr:hover { background: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <h1>🔍 EcoTree Tracker - Submissions Debugger</h1>
+    <p>यह tool आपको Firebase में stored submissions को check करने में मदद करेगा।</p>
+
+    <div class="debug-card">
+        <h2>📊 Database Status</h2>
+        <div id="dbStatus">Loading...</div>
+    </div>
+
+    <div class="debug-card">
+        <h2>👨‍💼 Admin Information</h2>
+        <button onclick="checkAllAdmins()">🔍 Check All Admins</button>
+        <div id="adminInfo"></div>
+    </div>
+
+    <div class="debug-card">
+        <h2>🔑 Active Pass Codes</h2>
+        <button onclick="checkAllPasses()">🔍 Check All Pass Codes</button>
+        <div id="passInfo"></div>
+    </div>
+
+    <div class="debug-card">
+        <h2>📝 All Submissions</h2>
+        <button onclick="checkAllSubmissions()">🔍 Load All Submissions</button>
+        <button onclick="checkSubmissionsByAdmin()" class="btn-success">🔍 Check by Admin Username</button>
+        <div id="submissionsInfo"></div>
+    </div>
+
+    <div class="debug-card">
+        <h2>🧪 Test Actions</h2>
+        <button onclick="createTestSubmission()" class="btn-success">✅ Create Test Submission</button>
+        <button onclick="clearAllSubmissions()" class="btn-danger">🗑️ Clear All Submissions (Careful!)</button>
+        <div id="testResult"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, getDocs, addDoc, deleteDoc, doc, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyB8_xAQJtvACs3F5qXGHnYMXY4dEldC2yA",
+            authDomain: "co2-calculatet.firebaseapp.com",
+            projectId: "co2-calculatet",
+            storageBucket: "co2-calculatet.firebasestorage.app",
+            messagingSenderId: "23756241592",
+            appId: "1:23756241592:web:e15f5f63b1147ed1d7524d"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        window.db = db;
+
+        // Check database status
+        async function checkDBStatus() {
+            try {
+                const testQuery = await getDocs(collection(db, 'submissions'));
+                document.getElementById('dbStatus').innerHTML = `
+                    <div class="status success">
+                        ✅ Firebase Connected Successfully<br>
+                        📊 Total Submissions in Database: <strong>${testQuery.size}</strong>
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('dbStatus').innerHTML = `
+                    <div class="status error">
+                        ❌ Firebase Connection Error: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Check all admins
+        window.checkAllAdmins = async () => {
+            try {
+                const adminsQuery = await getDocs(collection(db, 'admins'));
+                if (adminsQuery.size === 0) {
+                    document.getElementById('adminInfo').innerHTML = `
+                        <div class="status warning">⚠️ No admins found in database</div>
+                    `;
+                    return;
+                }
+
+                let html = `<div class="status info">📊 Found ${adminsQuery.size} admin(s)</div><table>
+                    <tr><th>Username</th><th>Name</th><th>Current Pass</th><th>Pass Active</th></tr>`;
+                
+                adminsQuery.forEach(doc => {
+                    const data = doc.data();
+                    html += `<tr>
+                        <td><strong>${doc.id}</strong></td>
+                        <td>${data.name || 'N/A'}</td>
+                        <td>${data.currentPass || 'No code'}</td>
+                        <td>${data.passActive ? '✅ Active' : '❌ Inactive'}</td>
+                    </tr>`;
+                });
+                html += '</table>';
+                document.getElementById('adminInfo').innerHTML = html;
+            } catch (error) {
+                document.getElementById('adminInfo').innerHTML = `
+                    <div class="status error">❌ Error: ${error.message}</div>
+                `;
+            }
+        };
+
+        // Check all passes
+        window.checkAllPasses = async () => {
+            try {
+                const passesQuery = await getDocs(collection(db, 'passes'));
+                if (passesQuery.size === 0) {
+                    document.getElementById('passInfo').innerHTML = `
+                        <div class="status warning">⚠️ No pass codes found</div>
+                    `;
+                    return;
+                }
+
+                let html = `<div class="status info">📊 Found ${passesQuery.size} pass code(s)</div><table>
+                    <tr><th>Pass Code</th><th>Admin Username</th><th>Admin Name</th><th>Active</th><th>Created At</th></tr>`;
+                
+                passesQuery.forEach(doc => {
+                    const data = doc.data();
+                    html += `<tr>
+                        <td><strong>${doc.id}</strong></td>
+                        <td>${data.adminUsername || 'N/A'}</td>
+                        <td>${data.adminName || 'N/A'}</td>
+                        <td>${data.active ? '✅' : '❌'}</td>
+                        <td>${data.createdAt ? new Date(data.createdAt).toLocaleString() : 'N/A'}</td>
+                    </tr>`;
+                });
+                html += '</table>';
+                document.getElementById('passInfo').innerHTML = html;
+            } catch (error) {
+                document.getElementById('passInfo').innerHTML = `
+                    <div class="status error">❌ Error: ${error.message}</div>
+                `;
+            }
+        };
+
+        // Check all submissions
+        window.checkAllSubmissions = async () => {
+            try {
+                const submissionsQuery = await getDocs(collection(db, 'submissions'));
+                if (submissionsQuery.size === 0) {
+                    document.getElementById('submissionsInfo').innerHTML = `
+                        <div class="status warning">⚠️ No submissions found in database</div>
+                    `;
+                    return;
+                }
+
+                let html = `<div class="status success">📊 Found ${submissionsQuery.size} submission(s)</div>
+                    <table style="font-size: 12px;">
+                    <tr>
+                        <th>Admin Username</th>
+                        <th>Student ID</th>
+                        <th>Tree Name</th>
+                        <th>CO2 (kg)</th>
+                        <th>Access Code</th>
+                        <th>Timestamp</th>
+                    </tr>`;
+                
+                submissionsQuery.forEach(doc => {
+                    const data = doc.data();
+                    html += `<tr>
+                        <td><strong>${data.adminUsername || 'MISSING!'}</strong></td>
+                        <td>${data.studentId || 'N/A'}</td>
+                        <td>${data.treeName || 'N/A'}</td>
+                        <td>${data.co2 || 'N/A'}</td>
+                        <td>${data.accessCode || 'N/A'}</td>
+                        <td>${data.timestamp ? new Date(data.timestamp).toLocaleString() : 'N/A'}</td>
+                    </tr>`;
+                });
+                html += '</table>';
+                
+                // Group by admin
+                const byAdmin = {};
+                submissionsQuery.forEach(doc => {
+                    const username = doc.data().adminUsername || 'UNKNOWN';
+                    byAdmin[username] = (byAdmin[username] || 0) + 1;
+                });
+                
+                html += '<h3>📊 Submissions by Admin:</h3><ul>';
+                for (const [admin, count] of Object.entries(byAdmin)) {
+                    html += `<li><strong>${admin}</strong>: ${count} submission(s)</li>`;
+                }
+                html += '</ul>';
+                
+                document.getElementById('submissionsInfo').innerHTML = html;
+            } catch (error) {
+                document.getElementById('submissionsInfo').innerHTML = `
+                    <div class="status error">❌ Error: ${error.message}</div>
+                `;
+            }
+        };
+
+        // Check submissions by specific admin
+        window.checkSubmissionsByAdmin = async () => {
+            const adminUsername = prompt('Enter admin username to check:');
+            if (!adminUsername) return;
+
+            try {
+                const submissionsQuery = query(
+                    collection(db, 'submissions'),
+                    where('adminUsername', '==', adminUsername)
+                );
+                const results = await getDocs(submissionsQuery);
+                
+                if (results.size === 0) {
+                    document.getElementById('submissionsInfo').innerHTML = `
+                        <div class="status warning">
+                            ⚠️ No submissions found for admin: <strong>${adminUsername}</strong><br>
+                            यह admin username exactly match होना चाहिए (case-sensitive)
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = `<div class="status success">
+                    ✅ Found ${results.size} submission(s) for admin: <strong>${adminUsername}</strong>
+                </div><table>
+                    <tr><th>Student</th><th>Tree</th><th>CO2</th><th>Time</th></tr>`;
+                
+                results.forEach(doc => {
+                    const data = doc.data();
+                    html += `<tr>
+                        <td>${data.studentId}</td>
+                        <td>${data.treeName}</td>
+                        <td>${data.co2} kg</td>
+                        <td>${new Date(data.timestamp).toLocaleString()}</td>
+                    </tr>`;
+                });
+                html += '</table>';
+                document.getElementById('submissionsInfo').innerHTML = html;
+            } catch (error) {
+                document.getElementById('submissionsInfo').innerHTML = `
+                    <div class="status error">❌ Error: ${error.message}</div>
+                `;
+            }
+        };
+
+        // Create test submission
+        window.createTestSubmission = async () => {
+            const adminUsername = prompt('Enter admin username for test submission:');
+            if (!adminUsername) return;
+
+            try {
+                const testData = {
+                    adminUsername: adminUsername,
+                    studentId: 'TEST-STUDENT-' + Date.now(),
+                    accessCode: 'TEST',
+                    treeName: 'Test Neem Tree',
+                    scientificName: 'Azadirachta indica',
+                    circumference: 100,
+                    dbh: 31.85,
+                    age: 10,
+                    latitude: 28.6139,
+                    longitude: 77.2090,
+                    totalBiomass: '150.50',
+                    carbon: '75.25',
+                    co2: '276.00',
+                    oxygen: '200.92',
+                    pollution: '5.52',
+                    economicValue: '414.00',
+                    timestamp: new Date().toISOString()
+                };
+
+                const docRef = await addDoc(collection(db, 'submissions'), testData);
+                document.getElementById('testResult').innerHTML = `
+                    <div class="status success">
+                        ✅ Test submission created successfully!<br>
+                        📄 Document ID: ${docRef.id}<br>
+                        👨‍💼 Admin: ${adminUsername}<br>
+                        <br>
+                        अब admin dashboard को refresh करके check करें!
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('testResult').innerHTML = `
+                    <div class="status error">❌ Error: ${error.message}</div>
+                `;
+            }
+        };
+
+        // Clear all submissions (DANGEROUS!)
+        window.clearAllSubmissions = async () => {
+            if (!confirm('⚠️ WARNING: This will delete ALL submissions! Are you sure?')) return;
+            if (!confirm('❌ FINAL WARNING: This cannot be undone! Continue?')) return;
+
+            try {
+                const submissionsQuery = await getDocs(collection(db, 'submissions'));
+                let deleted = 0;
+                
+                for (const docSnapshot of submissionsQuery.docs) {
+                    await deleteDoc(doc(db, 'submissions', docSnapshot.id));
+                    deleted++;
+                }
+
+                document.getElementById('testResult').innerHTML = `
+                    <div class="status success">
+                        ✅ Deleted ${deleted} submission(s)
+                    </div>
+                `;
+            } catch (error) {
+                document.getElementById('testResult').innerHTML = `
+                    <div class="status error">❌ Error: ${error.message}</div>
+                `;
+            }
+        };
+
+        // Auto-check on load
+        checkDBStatus();
+    </script>
+</body>
+</html>

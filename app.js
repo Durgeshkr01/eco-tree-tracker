@@ -2,6 +2,15 @@
 let calculationHistory = [];
 let selectedTreeIndex = null;
 
+// Logout function
+window.logout = () => {
+    if (confirm('Are you sure you want to logout?')) {
+        sessionStorage.removeItem('studentSession');
+        sessionStorage.removeItem('adminSession');
+        window.location.href = 'login.html';
+    }
+};
+
 // Load history from localStorage on page load
 document.addEventListener('DOMContentLoaded', () => {
     loadHistory();
@@ -13,6 +22,21 @@ document.addEventListener('DOMContentLoaded', () => {
 // Initialize GPS Location functionality
 function initializeGPSLocation() {
     const getLocationBtn = document.getElementById('getLocationBtn');
+    const lockLocationBtn = document.getElementById('lockLocationBtn');
+    const unlockLocationBtn = document.getElementById('unlockLocationBtn');
+    let lockedLocation = null;
+    
+    // Check if location is already locked in session
+    const savedLocation = sessionStorage.getItem('lockedLocation');
+    if (savedLocation) {
+        const location = JSON.parse(savedLocation);
+        lockedLocation = location;
+        document.getElementById('latitude').value = location.lat;
+        document.getElementById('longitude').value = location.lon;
+        getLocationBtn.style.display = 'none';
+        lockLocationBtn.style.display = 'block';
+        unlockLocationBtn.style.display = 'block';
+    }
     
     getLocationBtn.addEventListener('click', () => {
         if (!navigator.geolocation) {
@@ -31,12 +55,19 @@ function initializeGPSLocation() {
                 document.getElementById('latitude').value = lat;
                 document.getElementById('longitude').value = lon;
                 
-                getLocationBtn.innerHTML = '<i class="fas fa-check"></i> Location Captured';
+                getLocationBtn.innerHTML = '<i class="fas fa-lock"></i> Lock This Location';
                 getLocationBtn.disabled = false;
+                getLocationBtn.style.background = '#27ae60';
                 
-                setTimeout(() => {
-                    getLocationBtn.innerHTML = '<i class="fas fa-crosshairs"></i> Get Current Location';
-                }, 2000);
+                // Change button to lock mode
+                getLocationBtn.onclick = () => {
+                    lockedLocation = { lat, lon };
+                    sessionStorage.setItem('lockedLocation', JSON.stringify(lockedLocation));
+                    getLocationBtn.style.display = 'none';
+                    lockLocationBtn.style.display = 'block';
+                    unlockLocationBtn.style.display = 'block';
+                    alert('📍 Location locked! Same coordinates will be used for all trees until unlocked.');
+                };
             },
             (error) => {
                 alert('Unable to get location: ' + error.message);
@@ -44,6 +75,33 @@ function initializeGPSLocation() {
                 getLocationBtn.disabled = false;
             }
         );
+    });
+    
+    // Unlock location
+    unlockLocationBtn.addEventListener('click', () => {
+        lockedLocation = null;
+        sessionStorage.removeItem('lockedLocation');
+        document.getElementById('latitude').value = '';
+        document.getElementById('longitude').value = '';
+        getLocationBtn.style.display = 'block';
+        getLocationBtn.style.background = '';
+        getLocationBtn.innerHTML = '<i class="fas fa-crosshairs"></i> Get Current Location';
+        getLocationBtn.onclick = null; // Reset to original handler
+        lockLocationBtn.style.display = 'none';
+        unlockLocationBtn.style.display = 'none';
+        
+        // Re-initialize the click handler
+        initializeGPSLocation();
+    });
+    
+    // Auto-fill locked location when form is reset
+    document.getElementById('treeForm').addEventListener('reset', () => {
+        if (lockedLocation) {
+            setTimeout(() => {
+                document.getElementById('latitude').value = lockedLocation.lat;
+                document.getElementById('longitude').value = lockedLocation.lon;
+            }, 100);
+        }
     });
 }
 
@@ -266,6 +324,58 @@ function saveToHistory(treeData, results, age, latitude, longitude) {
 
     // Update history display
     displayHistory();
+    
+    // If student is logged in, submit to Firebase for admin
+    submitToAdmin(treeData, results, age, latitude, longitude);
+}
+
+// Submit data to admin's Firebase collection
+async function submitToAdmin(treeData, results, age, latitude, longitude) {
+    const studentSession = sessionStorage.getItem('studentSession');
+    if (!studentSession) {
+        console.log('⚠️ No student session found, skipping admin submission');
+        return;
+    }
+    
+    const session = JSON.parse(studentSession);
+    console.log('📤 Submitting data to admin:', session.adminUsername);
+    
+    try {
+        const { getFirestore, collection, addDoc } = await import("https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js");
+        const db = getFirestore(window.firebaseApp);
+        
+        const submissionData = {
+            adminUsername: session.adminUsername,
+            studentId: session.studentId,
+            accessCode: session.accessCode,
+            treeName: treeData.name,
+            scientificName: treeData.scientific,
+            circumference: parseFloat(document.getElementById('circumference').value),
+            dbh: results.inputs.dbh,
+            age: age,
+            latitude: latitude,
+            longitude: longitude,
+            totalBiomass: results.biomass.total,
+            agb: results.biomass.aboveGround,
+            bgb: results.biomass.belowGround,
+            carbon: results.carbon,
+            co2: results.co2,
+            oxygen: results.oxygen,
+            pollution: results.pollution,
+            economicValue: results.economicValue,
+            timestamp: new Date().toISOString()
+        };
+        
+        console.log('📋 Submission data:', submissionData);
+        
+        const docRef = await addDoc(collection(db, 'submissions'), submissionData);
+        
+        console.log('✅ Data submitted successfully! Doc ID:', docRef.id);
+    } catch (error) {
+        console.error('❌ Error submitting to admin:', error);
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+    }
 }
 
 // Load history from localStorage
