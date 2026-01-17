@@ -1,13 +1,18 @@
 // Service Worker for PWA
-const CACHE_NAME = 'ecotree-tracker-v9';
-const APP_VERSION = '3.3.0';
+const CACHE_NAME = 'ecotree-tracker-v11';
+const APP_VERSION = '4.0.0';
 const BASE_PATH = '/eco-tree-tracker/';
 const urlsToCache = [
   BASE_PATH,
   BASE_PATH + 'index.html',
+  BASE_PATH + 'login.html',
+  BASE_PATH + 'student-login.html',
+  BASE_PATH + 'admin-login.html',
+  BASE_PATH + 'admin.html',
   BASE_PATH + 'map.html',
   BASE_PATH + 'styles.css',
   BASE_PATH + 'app.js',
+  BASE_PATH + 'admin-dashboard.js',
   BASE_PATH + 'calculator.js',
   BASE_PATH + 'map.js',
   BASE_PATH + 'tree-data.js',

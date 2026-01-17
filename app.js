@@ -25,6 +25,7 @@ function initializeGPSLocation() {
     const lockLocationBtn = document.getElementById('lockLocationBtn');
     const unlockLocationBtn = document.getElementById('unlockLocationBtn');
     let lockedLocation = null;
+    let lockModeActive = false;
     
     // Check if location is already locked in session
     const savedLocation = sessionStorage.getItem('lockedLocation');
@@ -38,13 +39,37 @@ function initializeGPSLocation() {
         unlockLocationBtn.style.display = 'block';
     }
     
-    getLocationBtn.addEventListener('click', () => {
+    // Main location button handler
+    getLocationBtn.addEventListener('click', function handleLocationClick(e) {
+        e.preventDefault();
+        
+        // If in lock mode, lock the location
+        if (lockModeActive) {
+            const lat = document.getElementById('latitude').value;
+            const lon = document.getElementById('longitude').value;
+            
+            if (!lat || !lon) {
+                alert('No location to lock!');
+                return;
+            }
+            
+            lockedLocation = { lat, lon };
+            sessionStorage.setItem('lockedLocation', JSON.stringify(lockedLocation));
+            getLocationBtn.style.display = 'none';
+            lockLocationBtn.style.display = 'block';
+            unlockLocationBtn.style.display = 'block';
+            lockModeActive = false;
+            alert('📍 Location locked! Same coordinates will be used for all trees.');
+            return;
+        }
+        
+        // Get location from GPS
         if (!navigator.geolocation) {
             alert('Geolocation is not supported by your browser');
             return;
         }
         
-        getLocationBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting Location...';
+        getLocationBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Getting...';
         getLocationBtn.disabled = true;
         
         navigator.geolocation.getCurrentPosition(
@@ -55,43 +80,39 @@ function initializeGPSLocation() {
                 document.getElementById('latitude').value = lat;
                 document.getElementById('longitude').value = lon;
                 
-                getLocationBtn.innerHTML = '<i class="fas fa-lock"></i> Lock This Location';
+                getLocationBtn.innerHTML = '<i class="fas fa-lock"></i> Lock Location';
                 getLocationBtn.disabled = false;
                 getLocationBtn.style.background = '#27ae60';
-                
-                // Change button to lock mode
-                getLocationBtn.onclick = () => {
-                    lockedLocation = { lat, lon };
-                    sessionStorage.setItem('lockedLocation', JSON.stringify(lockedLocation));
-                    getLocationBtn.style.display = 'none';
-                    lockLocationBtn.style.display = 'block';
-                    unlockLocationBtn.style.display = 'block';
-                    alert('📍 Location locked! Same coordinates will be used for all trees until unlocked.');
-                };
+                lockModeActive = true;
             },
             (error) => {
+                console.error('Geolocation error:', error);
                 alert('Unable to get location: ' + error.message);
-                getLocationBtn.innerHTML = '<i class="fas fa-crosshairs"></i> Get Current Location';
+                getLocationBtn.innerHTML = '<i class="fas fa-crosshairs"></i> Get Location';
                 getLocationBtn.disabled = false;
+                lockModeActive = false;
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
             }
         );
     });
     
     // Unlock location
-    unlockLocationBtn.addEventListener('click', () => {
+    unlockLocationBtn.addEventListener('click', (e) => {
+        e.preventDefault();
         lockedLocation = null;
         sessionStorage.removeItem('lockedLocation');
         document.getElementById('latitude').value = '';
         document.getElementById('longitude').value = '';
         getLocationBtn.style.display = 'block';
         getLocationBtn.style.background = '';
-        getLocationBtn.innerHTML = '<i class="fas fa-crosshairs"></i> Get Current Location';
-        getLocationBtn.onclick = null; // Reset to original handler
+        getLocationBtn.innerHTML = '<i class="fas fa-crosshairs"></i> Get Location';
         lockLocationBtn.style.display = 'none';
         unlockLocationBtn.style.display = 'none';
-        
-        // Re-initialize the click handler
-        initializeGPSLocation();
+        lockModeActive = false;
     });
     
     // Auto-fill locked location when form is reset
