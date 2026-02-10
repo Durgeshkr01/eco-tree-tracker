@@ -11,6 +11,9 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
+    <!-- TensorFlow.js for ML-based measurements -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js"></script>
+    
     <!-- HTML2PDF Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -85,13 +88,101 @@
                     <label for="circumference">
                         <i class="fas fa-circle-notch"></i> Tree Circumference (at Breast Height)
                     </label>
-                    <div class="input-with-unit">
+                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                        <button type="button" id="openCameraBtn" class="btn-secondary" style="flex: 1;">
+                            <i class="fas fa-camera"></i> Measure with Camera
+                        </button>
+                        <button type="button" id="manualInputBtn" class="btn-secondary" style="flex: 1; background: #95a5a6;">
+                            <i class="fas fa-keyboard"></i> Manual Input
+                        </button>
+                    </div>
+                    <div class="input-with-unit" id="manualInputContainer">
                         <input type="number" id="circumference" step="0.1" min="0.1" placeholder="Enter circumference in cm" required>
                         <span class="unit-label">cm</span>
                     </div>
                     <small style="color: #666; display: block; margin-top: 5px;">
-                        Measure around the trunk at ~1.3m height
+                        📸 Use camera for automatic measurement or enter manually
                     </small>
+                </div>
+
+                <!-- Camera Modal -->
+                <div id="cameraModal" class="camera-modal" style="display: none;">
+                    <div class="camera-modal-content">
+                        <div class="camera-modal-header">
+                            <h3><i class="fas fa-camera"></i> Tree Measurement Camera</h3>
+                            <button id="closeCameraBtn" class="close-btn">&times;</button>
+                        </div>
+                        
+                        <div class="camera-instructions">
+                            <p><strong>📋 Instructions (Automatic Detection):</strong></p>
+                            <ol>
+                                <li><strong>No reference object needed!</strong> 🎉</li>
+                                <li>Stand 2-3 meters away from the tree</li>
+                                <li>Keep camera at chest height, parallel to ground</li>
+                                <li>Center the tree in frame (tree should fill 30-80% of screen)</li>
+                                <li>Ensure good lighting and clear background</li>
+                                <li>Capture photo - measurements will be automatic!</li>
+                            </ol>
+                        </div>
+
+                        <div class="reference-selector">
+                            <label><i class="fas fa-ruler"></i> Reference Object:</label>
+                            <select id="referenceObject" class="reference-select">
+                                <option value="credit-card">💳 Credit Card (8.5 cm)</option>
+                                <option value="a4-paper">📄 A4 Paper (21 cm width)</option>
+                                <option value="coin-10rs">🪙 10 Rs Coin (2.7 cm)</option>
+                                <option value="hand">✋ Hand Width (~9 cm)</option>
+                                <option value="custom">📏 Custom Size</option>
+                            </select>
+                        </div>
+
+                        <div id="customSizeInput" style="display: none; margin: 10px 0;">
+                            <label>Custom Width (cm):</label>
+                            <input type="number" id="customWidth" step="0.1" min="0.1" placeholder="Enter width in cm">
+                        </div>
+
+                        <div class="camera-container">
+                            <video id="cameraVideo" autoplay playsinline></video>
+                            <canvas id="cameraCanvas" style="display: none;"></canvas>
+                            <canvas id="resultCanvas"></canvas>
+                        </div>
+
+                        <div class="camera-controls">
+                            <button id="captureBtn" class="btn-primary">
+                                <i class="fas fa-camera"></i> Capture Photo
+                            </button>
+                            <button id="retakeBtn" class="btn-secondary" style="display: none;">
+                                <i class="fas fa-redo"></i> Retake
+                            </button>
+                        </div>
+
+                        <div id="measurementStep" style="display: none;">
+                            <p style="margin: 15px 0; color: #e74c3c; font-weight: bold;">
+                                👆 Click and drag to mark the reference object width
+                            </p>
+                            <div style="margin: 10px 0;">
+                                <label>Reference Width (pixels): <span id="pixelWidth">0</span></label>
+                            </div>
+                            <button id="calculateMeasurementBtn" class="btn-primary" disabled>
+                                <i class="fas fa-calculator"></i> Calculate Measurements
+                            </button>
+                        </div>
+
+                        <div id="measurementResults" style="display: none;">
+                            <div class="measurement-result-card">
+                                <h4>📊 Detected Measurements:</h4>
+                                <div class="measurement-values">
+                                    <p><strong>Height:</strong> <span id="detectedHeight">-</span> cm</p>
+                                    <p><strong>Width:</strong> <span id="detectedWidth">-</span> cm</p>
+                                    <p><strong>Circumference:</strong> <span id="detectedCircumference">-</span> cm</p>
+                                    <p><strong>Confidence:</strong> <span id="detectedConfidence">-</span>%</p>
+                                </div>
+                                <button id="useMeasurementBtn" class="btn-primary">
+                                    <i class="fas fa-check"></i> Use This Measurement
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Age (Optional) -->
@@ -1078,5 +1169,11 @@
             }
         });
     </script>
+
+    <!-- ML Tree Measurement Script -->
+    <script src="ml-tree-measurement.js"></script>
+    <script src="advanced-ml-measurement.js"></script>
+    <script src="camera-handler.js"></script>
 </body>
 </html>
+
