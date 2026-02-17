@@ -91,90 +91,118 @@ function initializeCameraHandlers() {
 
     // Capture photo
     captureBtn.addEventListener('click', async () => {
-        const image = advancedML.captureImage(cameraVideo, cameraCanvas);
+        // Disable capture button immediately to prevent double-clicks
+        captureBtn.disabled = true;
+        captureBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
         
-        // Show captured image on result canvas
-        const context = resultCanvas.getContext('2d');
-        const img = new Image();
-        img.onload = async () => {
-            resultCanvas.width = img.width;
-            resultCanvas.height = img.height;
-            context.drawImage(img, 0, 0);
+        try {
+            const image = advancedML.captureImage(cameraVideo, cameraCanvas);
             
-            // Hide video, show canvas
-            cameraVideo.style.display = 'none';
-            resultCanvas.style.display = 'block';
-            captureBtn.style.display = 'none';
-            retakeBtn.style.display = 'inline-block';
-            
-            // Show processing overlay
-            const loadingMsg = document.createElement('div');
-            loadingMsg.id = 'autoProcessing';
-            loadingMsg.style.cssText = 'text-align: center; padding: 20px; color: #27ae60; font-weight: bold;';
-            
-            // Check if species is selected
-            const treeSearchVal = document.getElementById('treeSearch') ? document.getElementById('treeSearch').value : '';
-            const speciesInfo = treeSearchVal ? ` (calibrating for ${treeSearchVal})` : ' (select species for better accuracy)';
-            
-            loadingMsg.innerHTML = `
-                <i class="fas fa-spinner fa-spin"></i> Analyzing tree${speciesInfo}...<br>
-                <small style="color: #666; font-weight: normal; margin-top: 8px; display: block;">
-                    Running: Edge Detection → Trunk Analysis → Measurement Fusion
-                </small>
-            `;
-            document.querySelector('.camera-modal-content').appendChild(loadingMsg);
-            
-            try {
-                // Load models and run automatic measurement
-                await advancedML.loadModels();
-                const measurements = await advancedML.measureAutomatically(resultCanvas);
+            // Show captured image on result canvas
+            const context = resultCanvas.getContext('2d');
+            const img = new Image();
+            img.onload = async () => {
+                resultCanvas.width = img.width;
+                resultCanvas.height = img.height;
+                context.drawImage(img, 0, 0);
                 
-                // Draw advanced detection overlay
-                advancedML.drawDetectionOverlay(resultCanvas, measurements.bounds, measurements);
+                // Hide video, show canvas
+                cameraVideo.style.display = 'none';
+                resultCanvas.style.display = 'block';
+                captureBtn.style.display = 'none';
+                retakeBtn.style.display = 'inline-block';
                 
-                // Display results
-                document.getElementById('detectedHeight').textContent = measurements.height;
-                document.getElementById('detectedWidth').textContent = measurements.trunkWidth;
-                document.getElementById('detectedCircumference').textContent = measurements.circumference;
-                document.getElementById('detectedConfidence').textContent = measurements.confidence;
+                // Show processing overlay
+                const loadingMsg = document.createElement('div');
+                loadingMsg.id = 'autoProcessing';
+                loadingMsg.style.cssText = 'text-align: center; padding: 20px; color: #27ae60; font-weight: bold;';
                 
-                // Remove loading and show results
-                if (loadingMsg) loadingMsg.remove();
-                document.getElementById('measurementResults').style.display = 'block';
+                // Check if species is selected
+                const treeSearchVal = document.getElementById('treeSearch') ? document.getElementById('treeSearch').value : '';
+                const speciesInfo = treeSearchVal ? ` (calibrating for ${treeSearchVal})` : ' (select species for better accuracy)';
                 
-                // Add species & method info under results
-                const resultsDiv = document.getElementById('measurementResults');
-                let extraInfo = resultsDiv.querySelector('.extra-measurement-info');
-                if (!extraInfo) {
-                    extraInfo = document.createElement('div');
-                    extraInfo.className = 'extra-measurement-info';
-                    extraInfo.style.cssText = 'margin-top: 10px; padding: 10px; background: #f0f8f0; border-radius: 8px; font-size: 13px; color: #555;';
-                    resultsDiv.appendChild(extraInfo);
-                }
-                
-                let methodText = '';
-                if (measurements.methodDetails) {
-                    methodText = measurements.methodDetails.map(function(m) {
-                        return '<b>' + m.name.replace('_', ' ') + '</b>: ' + m.value.toFixed(1) + ' cm';
-                    }).join(' | ');
-                }
-                
-                extraInfo.innerHTML = `
-                    <div style="margin-bottom: 5px;">
-                        <i class="fas fa-brain" style="color: #8e44ad;"></i>
-                        <b>Analysis Methods:</b> ${methodText}
+                loadingMsg.innerHTML = `
+                    <div style="margin-bottom: 12px;">
+                        <div class="processing-spinner" style="width: 40px; height: 40px; border: 4px solid #e0e0e0; border-top: 4px solid #27ae60; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 10px;"></div>
                     </div>
-                    ${measurements.species ? '<div><i class="fas fa-leaf" style="color: #27ae60;"></i> Calibrated for: <b>' + measurements.species + '</b></div>' : '<div style="color: #e67e22;"><i class="fas fa-exclamation-triangle"></i> Select species above for better accuracy</div>'}
-                    <div style="margin-top: 4px;"><i class="fas fa-bolt" style="color: #f39c12;"></i> Processed in ${measurements.processingTime || '?'}ms</div>
+                    <div style="font-size: 16px;">Analyzing Tree${speciesInfo}...</div>
+                    <small style="color: #666; font-weight: normal; margin-top: 8px; display: block;">
+                        Running: Edge Detection → Trunk Analysis → Measurement Fusion
+                    </small>
+                    <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
                 `;
+                document.querySelector('.camera-modal-content').appendChild(loadingMsg);
                 
-            } catch (error) {
-                if (loadingMsg) loadingMsg.remove();
-                alert('Auto-detection failed: ' + error.message + '\n\nPlease ensure:\n- Tree is centered in frame\n- Good lighting\n- Stand 2-3m away\n- Select tree species first');
-                retakeBtn.click();
-            }
-        };
-        img.src = image;
+                try {
+                    // Load models and run automatic measurement
+                    await advancedML.loadModels();
+                    const measurements = await advancedML.measureAutomatically(resultCanvas);
+                    
+                    // Draw advanced detection overlay
+                    advancedML.drawDetectionOverlay(resultCanvas, measurements.bounds, measurements);
+                    
+                    // Display results
+                    document.getElementById('detectedHeight').textContent = measurements.height;
+                    document.getElementById('detectedWidth').textContent = measurements.trunkWidth;
+                    document.getElementById('detectedCircumference').textContent = measurements.circumference;
+                    document.getElementById('detectedConfidence').textContent = measurements.confidence;
+                    
+                    // Remove loading and show results
+                    if (loadingMsg) loadingMsg.remove();
+                    document.getElementById('measurementResults').style.display = 'block';
+                    
+                    // Add species & method info under results
+                    const resultsDiv = document.getElementById('measurementResults');
+                    let extraInfo = resultsDiv.querySelector('.extra-measurement-info');
+                    if (!extraInfo) {
+                        extraInfo = document.createElement('div');
+                        extraInfo.className = 'extra-measurement-info';
+                        extraInfo.style.cssText = 'margin-top: 10px; padding: 12px; background: linear-gradient(135deg, #f0f8f0, #e8f5e9); border-radius: 10px; font-size: 13px; color: #555; border: 1px solid #c8e6c9;';
+                        resultsDiv.appendChild(extraInfo);
+                    }
+                    
+                    let methodText = '';
+                    if (measurements.methodDetails) {
+                        methodText = measurements.methodDetails.map(function(m) {
+                            return '<b>' + m.name.replace('_', ' ') + '</b>: ' + m.value.toFixed(1) + ' cm';
+                        }).join(' | ');
+                    }
+                    
+                    extraInfo.innerHTML = `
+                        <div style="margin-bottom: 5px;">
+                            <i class="fas fa-brain" style="color: #8e44ad;"></i>
+                            <b>Analysis Methods:</b> ${methodText}
+                        </div>
+                        ${measurements.species ? '<div><i class="fas fa-leaf" style="color: #27ae60;"></i> Calibrated for: <b>' + measurements.species + '</b></div>' : '<div style="color: #e67e22;"><i class="fas fa-exclamation-triangle"></i> Select species above for better accuracy</div>'}
+                        <div style="margin-top: 4px;"><i class="fas fa-bolt" style="color: #f39c12;"></i> Processed in ${measurements.processingTime || '?'}ms</div>
+                    `;
+                    
+                } catch (error) {
+                    if (loadingMsg) loadingMsg.remove();
+                    
+                    // Show error inline instead of alert
+                    const errorMsg = document.createElement('div');
+                    errorMsg.id = 'captureError';
+                    errorMsg.style.cssText = 'text-align: center; padding: 16px; color: #e74c3c; background: #fdf0f0; border-radius: 10px; margin: 10px 0; border: 1px solid #f5c6cb;';
+                    errorMsg.innerHTML = `
+                        <i class="fas fa-exclamation-circle" style="font-size: 24px; margin-bottom: 8px; display: block;"></i>
+                        <b>Detection Issue:</b> ${error.message}<br>
+                        <small style="color: #888; margin-top: 8px; display: block;">Please retake: center the tree, ensure good lighting, stand 2-3m away</small>
+                    `;
+                    document.querySelector('.camera-modal-content').appendChild(errorMsg);
+                    
+                    // Auto-remove error after 5s
+                    setTimeout(() => { if (errorMsg.parentNode) errorMsg.remove(); }, 5000);
+                }
+            };
+            img.src = image;
+        } catch (e) {
+            console.error('Capture failed:', e);
+        } finally {
+            // Re-enable capture button
+            captureBtn.disabled = false;
+            captureBtn.innerHTML = '<i class="fas fa-camera"></i> Capture Photo';
+        }
     });
 
     // Retake photo
@@ -183,7 +211,16 @@ function initializeCameraHandlers() {
         cameraVideo.style.display = 'block';
         resultCanvas.style.display = 'none';
         captureBtn.style.display = 'inline-block';
+        captureBtn.disabled = false;
+        captureBtn.innerHTML = '<i class="fas fa-camera"></i> Capture Photo';
         retakeBtn.style.display = 'none';
+        // Remove any error messages
+        const captureError = document.getElementById('captureError');
+        if (captureError) captureError.remove();
+        const autoProcessing = document.getElementById('autoProcessing');
+        if (autoProcessing) autoProcessing.remove();
+        const extraInfo = document.querySelector('.extra-measurement-info');
+        if (extraInfo) extraInfo.remove();
     });
 
     // Calculate measurements

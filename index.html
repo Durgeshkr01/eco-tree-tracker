@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#27ae60">
+    <meta name="theme-color" content="#0a1628">
     <meta name="description" content="Calculate tree's carbon absorption, oxygen production & environmental impact">
-    <title>🌳 EcoTree Tracker - Tree Carbon & Oxygen Calculator</title>
+    <title>EcoTree Tracker - Carbon & Oxygen Calculator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="styles.css">
@@ -34,31 +35,20 @@
     </script>
 </head>
 <body>
-    <!-- Floating Leaves Background -->
-    <div id="leavesContainer" class="leaves-container"></div>
-    
-    <!-- Confetti Container -->
-    <div id="confettiContainer" class="confetti-container"></div>
-
     <!-- Header -->
     <header class="header">
         <div class="container">
             <div class="header-content">
-                <video class="logo" autoplay loop muted playsinline>
-                    <source src="Logo Video/WhatsApp Video 2026-01-12 at 8.37.29 PM.mp4" type="video/mp4">
-                    <!-- Fallback to SVG if video doesn't load -->
-                    <img src="logo.svg" alt="EcoTree Tracker Logo" class="logo">
-                </video>
                 <div class="header-text">
-                    <h1>🌳 EcoTree Tracker</h1>
-                    <p>Calculate carbon absorption, oxygen production & environmental impact</p>
+                    <h1><i class="fas fa-tree" style="margin-right: 8px;"></i>EcoTree Tracker</h1>
+                    <p>Carbon absorption, oxygen production & environmental impact calculator</p>
                 </div>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 10px;">
-                    <button onclick="logout()" class="map-nav-btn" style="background: #e74c3c; padding: 8px 16px; font-size: 0.85rem; border-radius: 10px;">
+                    <button onclick="logout()" class="header-action-btn logout-btn-header">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </button>
-                    <button id="installBtn" class="install-btn" style="display: none; position: relative; right: auto; padding: 8px 16px; font-size: 0.85rem; border-radius: 10px;">
-                        <i class="fas fa-download"></i> Install App
+                    <button id="installBtn" class="header-action-btn install-btn-header" style="display: none;">
+                        <i class="fas fa-download"></i> Install
                     </button>
                 </div>
             </div>
@@ -88,20 +78,20 @@
                     <label for="circumference">
                         <i class="fas fa-circle-notch"></i> Tree Circumference (at Breast Height)
                     </label>
-                    <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-                        <button type="button" id="openCameraBtn" class="btn-secondary" style="flex: 1; padding: 10px 12px; font-size: 0.85rem;">
-                            <i class="fas fa-camera"></i> Camera
+                    <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                        <button type="button" id="openCameraBtn" class="btn-secondary" style="flex: 1; padding: 12px 14px; font-size: 0.9rem; background: linear-gradient(135deg, #27ae60, #2ecc71); border-radius: 12px; font-weight: 700; box-shadow: 0 3px 12px rgba(39,174,96,0.3);">
+                            <i class="fas fa-camera"></i> AI Camera
                         </button>
-                        <button type="button" id="manualInputBtn" class="btn-secondary" style="flex: 1; padding: 10px 12px; font-size: 0.85rem; background: #95a5a6;">
-                            <i class="fas fa-keyboard"></i> Manual
+                        <button type="button" id="manualInputBtn" class="btn-secondary" style="flex: 1; padding: 12px 14px; font-size: 0.9rem; background: linear-gradient(135deg, #636e72, #747d8c); border-radius: 12px; font-weight: 600;">
+                            <i class="fas fa-keyboard"></i> Manual Entry
                         </button>
                     </div>
                     <div class="input-with-unit" id="manualInputContainer">
                         <input type="number" id="circumference" step="0.1" min="0.1" placeholder="Enter circumference in cm" required>
                         <span class="unit-label">cm</span>
                     </div>
-                    <small style="color: #666; display: block; margin-top: 5px;">
-                        📸 Use camera for automatic measurement or enter manually
+                    <small style="color: rgba(255,255,255,.4); display: block; margin-top: 5px; font-size: 0.8rem;">
+                        <i class="fas fa-info-circle"></i> Use camera for automatic measurement or enter manually
                     </small>
                 </div>
 
@@ -109,33 +99,44 @@
                 <div id="cameraModal" class="camera-modal" style="display: none;">
                     <div class="camera-modal-content">
                         <div class="camera-modal-header">
-                            <h3><i class="fas fa-camera"></i> Tree Measurement Camera</h3>
+                            <h3><i class="fas fa-microscope"></i> AI Tree Analyzer</h3>
+                            <span style="font-size: 0.75em; opacity: 0.9; font-weight: normal;">Powered by Computer Vision</span>
                             <button id="closeCameraBtn" class="close-btn">&times;</button>
                         </div>
                         
                         <div class="camera-instructions">
-                            <p><strong>📋 Smart Auto-Detection Instructions:</strong></p>
-                            <ol>
-                                <li><strong>First select tree species above</strong> (improves accuracy!)</li>
-                                <li>Stand <strong>2-3 meters</strong> away from the tree</li>
-                                <li>Keep camera at <strong>chest height</strong> (1.3-1.5m), parallel to ground</li>
-                                <li>Center the <strong>tree trunk</strong> in frame (fill 30-80%)</li>
-                                <li>Ensure <strong>good lighting</strong> on the trunk</li>
-                                <li>Capture → <strong>Circumference auto-fills!</strong> 🎯</li>
-                            </ol>
-                            <p style="color: #27ae60; font-size: 13px; margin-top: 5px;">
-                                <i class="fas fa-brain"></i> Uses: Edge Detection + HSV/LAB Color Analysis + Species Calibration + Camera Geometry
+                            <p><strong><i class="fas fa-magic"></i> Smart Auto-Detection</strong></p>
+                            <div class="instruction-steps">
+                                <div class="instruction-step">
+                                    <span class="step-num">1</span>
+                                    <span>Select tree species above for best accuracy</span>
+                                </div>
+                                <div class="instruction-step">
+                                    <span class="step-num">2</span>
+                                    <span>Stand <strong>2-3 meters</strong> from the tree</span>
+                                </div>
+                                <div class="instruction-step">
+                                    <span class="step-num">3</span>
+                                    <span>Center the trunk in frame, hold camera at chest height</span>
+                                </div>
+                                <div class="instruction-step">
+                                    <span class="step-num">4</span>
+                                    <span>Tap <strong>Capture</strong> — circumference auto-fills!</span>
+                                </div>
+                            </div>
+                            <p class="tech-badge">
+                                <i class="fas fa-brain"></i> Edge Detection + HSV/LAB Analysis + Species Calibration + Camera Geometry
                             </p>
                         </div>
 
                         <div class="reference-selector">
                             <label><i class="fas fa-ruler"></i> Reference Object:</label>
                             <select id="referenceObject" class="reference-select">
-                                <option value="credit-card">💳 Credit Card (8.5 cm)</option>
-                                <option value="a4-paper">📄 A4 Paper (21 cm width)</option>
-                                <option value="coin-10rs">🪙 10 Rs Coin (2.7 cm)</option>
-                                <option value="hand">✋ Hand Width (~9 cm)</option>
-                                <option value="custom">📏 Custom Size</option>
+                                <option value="credit-card">Credit Card (8.5 cm)</option>
+                                <option value="a4-paper">A4 Paper (21 cm width)</option>
+                                <option value="coin-10rs">10 Rs Coin (2.7 cm)</option>
+                                <option value="hand">Hand Width (~9 cm)</option>
+                                <option value="custom">Custom Size</option>
                             </select>
                         </div>
 
@@ -151,17 +152,17 @@
                         </div>
 
                         <div class="camera-controls">
-                            <button id="captureBtn" class="btn-primary">
-                                <i class="fas fa-camera"></i> Capture Photo
+                            <button id="captureBtn" class="btn-primary" style="background: linear-gradient(135deg, #27ae60, #2ecc71); min-width: 200px;">
+                                <i class="fas fa-camera"></i> Capture & Analyze
                             </button>
-                            <button id="retakeBtn" class="btn-secondary" style="display: none;">
-                                <i class="fas fa-redo"></i> Retake
+                            <button id="retakeBtn" class="btn-secondary" style="display: none; background: rgba(245,158,11,0.15); color: #fbbf24; border-color: rgba(245,158,11,0.2);">
+                                <i class="fas fa-redo"></i> Retake Photo
                             </button>
                         </div>
 
                         <div id="measurementStep" style="display: none;">
-                            <p style="margin: 15px 0; color: #e74c3c; font-weight: bold;">
-                                👆 Click and drag to mark the reference object width
+                            <p style="margin: 15px 0; color: #f87171; font-weight: bold;">
+                                <i class="fas fa-hand-pointer" style="margin-right:4px;"></i> Click and drag to mark the reference object width
                             </p>
                             <div style="margin: 10px 0;">
                                 <label>Reference Width (pixels): <span id="pixelWidth">0</span></label>
@@ -173,17 +174,17 @@
 
                         <div id="measurementResults" style="display: none;">
                             <div class="measurement-result-card">
-                                <h4>📊 Auto-Detected Measurements:</h4>
+                                <h4><i class="fas fa-chart-bar"></i> AI Detection Results</h4>
                                 <div class="measurement-values">
-                                    <p><strong>🌲 Height:</strong> <span id="detectedHeight">-</span> cm</p>
-                                    <p><strong>⌀ Trunk Diameter:</strong> <span id="detectedWidth">-</span> cm</p>
-                                    <p><strong>📏 Circumference (DBH):</strong> <span id="detectedCircumference" style="color: #e74c3c; font-size: 1.2em; font-weight: bold;">-</span> cm</p>
-                                    <p><strong>🎯 Confidence:</strong> <span id="detectedConfidence">-</span>%</p>
+                                    <p><strong><i class="fas fa-arrows-alt-v" style="color:#27ae60;"></i> Tree Height</strong> <span id="detectedHeight">-</span> cm</p>
+                                    <p><strong><i class="fas fa-arrows-alt-h" style="color:#3498db;"></i> Trunk Diameter</strong> <span id="detectedWidth">-</span> cm</p>
+                                    <p class="highlight-row"><strong><i class="fas fa-circle-notch" style="color:#e74c3c;"></i> Circumference (DBH)</strong> <span id="detectedCircumference" style="color: #e74c3c; font-size: 1.3em; font-weight: bold;">-</span> cm</p>
+                                    <p><strong><i class="fas fa-bullseye" style="color:#f39c12;"></i> Confidence</strong> <span id="detectedConfidence">-</span>%</p>
                                 </div>
-                                <button id="useMeasurementBtn" class="btn-primary" style="width: 100%; margin-top: 10px; padding: 14px; font-size: 16px;">
-                                    <i class="fas fa-check-circle"></i> Use This Measurement & Auto-Calculate
+                                <button id="useMeasurementBtn" class="btn-primary use-measurement-btn">
+                                    <i class="fas fa-check-circle"></i> Use This Measurement & Calculate
                                 </button>
-                                <p style="text-align: center; margin-top: 8px; font-size: 12px; color: #888;">
+                                <p style="text-align: center; margin-top: 8px; font-size: 12px; color: rgba(255,255,255,0.4);">
                                     Circumference will auto-fill and calculate environmental impact
                                 </p>
                             </div>
@@ -208,27 +209,27 @@
                         <button type="button" id="getLocationBtn" class="btn-secondary" style="flex: 1; padding: 10px 14px; font-size: 0.85rem; min-width: 140px;">
                             <i class="fas fa-crosshairs"></i> Get Location
                         </button>
-                        <button type="button" id="lockLocationBtn" class="btn-secondary" style="flex: 1; padding: 10px 14px; font-size: 0.85rem; background: #27ae60; display: none;">
-                            <i class="fas fa-lock"></i> Locked
+                        <button type="button" id="lockLocationBtn" class="btn-secondary" style="flex: 1; padding: 10px 14px; font-size: 0.85rem; background: rgba(16,185,129,0.2); color: #34d399; border-color: rgba(16,185,129,0.3); display: none;">
+                            <i class="fas fa-lock"></i> Lock Location
                         </button>
-                        <button type="button" id="unlockLocationBtn" class="btn-secondary" style="padding: 10px 14px; font-size: 0.85rem; background: #e74c3c; display: none;">
+                        <button type="button" id="unlockLocationBtn" class="btn-secondary" style="padding: 10px 14px; font-size: 0.85rem; background: rgba(239,68,68,0.15); color: #fca5a5; border-color: rgba(239,68,68,0.2); display: none;">
                             <i class="fas fa-unlock"></i> Unlock
                         </button>
                     </div>
                     <div class="gps-fields">
                         <div style="display: flex; gap: 10px;">
                             <div style="flex: 1;">
-                                <label for="latitude" style="font-size: 0.9em; color: #666;">Latitude</label>
-                                <input type="text" id="latitude" placeholder="Auto-filled" readonly style="background: #f5f5f5;">
+                                <label for="latitude" style="font-size: 0.9em; color: rgba(255,255,255,0.5);">Latitude</label>
+                                <input type="text" id="latitude" placeholder="Auto-filled" readonly style="background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.08);">
                             </div>
                             <div style="flex: 1;">
-                                <label for="longitude" style="font-size: 0.9em; color: #666;">Longitude</label>
-                                <input type="text" id="longitude" placeholder="Auto-filled" readonly style="background: #f5f5f5;">
+                                <label for="longitude" style="font-size: 0.9em; color: rgba(255,255,255,0.5);">Longitude</label>
+                                <input type="text" id="longitude" placeholder="Auto-filled" readonly style="background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.08);">
                             </div>
                         </div>
                     </div>
-                    <p style="font-size: 0.85em; color: #666; margin-top: 8px;">
-                        💡 Click "Get Location" then lock it to use same coordinates for multiple trees
+                    <p style="font-size: 0.82em; color: rgba(255,255,255,.35); margin-top: 8px;">
+                        <i class="fas fa-lightbulb" style="color: #fbbf24;"></i> Click "Get Location" then lock it to use same coordinates for multiple trees
                     </p>
                 </div>
 
@@ -413,37 +414,37 @@
             
             <div class="education-grid">
                 <div class="edu-card">
-                    <div class="edu-icon">🌳</div>
+                    <div class="edu-icon"><i class="fas fa-tree" style="color: #34d399;"></i></div>
                     <h3>How Trees Absorb CO₂</h3>
                     <p>Through photosynthesis, trees absorb carbon dioxide from the atmosphere and store carbon in their biomass (trunk, branches, leaves, and roots). The oxygen is released back into the air as a byproduct.</p>
                 </div>
                 
                 <div class="edu-card">
-                    <div class="edu-icon">💨</div>
+                    <div class="edu-icon"><i class="fas fa-wind" style="color: #60a5fa;"></i></div>
                     <h3>Oxygen Production</h3>
                     <p>A mature tree produces approximately 260 pounds of oxygen per year. That's enough oxygen for two people annually! Trees are literally the lungs of our planet.</p>
                 </div>
                 
                 <div class="edu-card">
-                    <div class="edu-icon">🌍</div>
+                    <div class="edu-icon"><i class="fas fa-globe-americas" style="color: #a78bfa;"></i></div>
                     <h3>Climate Change Impact</h3>
                     <p>Trees are our best natural defense against climate change. They remove harmful CO₂ from the atmosphere, reduce urban heat islands, and help regulate local and global temperatures.</p>
                 </div>
                 
                 <div class="edu-card">
-                    <div class="edu-icon">🏭</div>
+                    <div class="edu-icon"><i class="fas fa-industry" style="color: #f87171;"></i></div>
                     <h3>Air Pollution Removal</h3>
                     <p>Trees filter harmful pollutants like PM2.5, nitrogen dioxide, sulfur dioxide, and ozone from the air. Their leaves and bark act as natural air purifiers for our cities.</p>
                 </div>
                 
                 <div class="edu-card">
-                    <div class="edu-icon">💰</div>
+                    <div class="edu-icon"><i class="fas fa-coins" style="color: #fbbf24;"></i></div>
                     <h3>Economic Value</h3>
                     <p>Beyond environmental benefits, trees provide economic value through carbon credits, increased property values, reduced energy costs, and improved public health.</p>
                 </div>
                 
                 <div class="edu-card">
-                    <div class="edu-icon">📊</div>
+                    <div class="edu-icon"><i class="fas fa-chart-bar" style="color: #34d399;"></i></div>
                     <h3>Why Measure Trees?</h3>
                     <p>Measuring tree impact helps us understand their contribution to ecosystem services, plan urban forestry programs, and make data-driven decisions for environmental conservation.</p>
                 </div>
@@ -606,12 +607,12 @@
     <!-- Footer -->
     <footer class="footer">
         <div class="container">
-            <p>🌍 Based on research: AGB = 34.4703 - 8.0671×D + 0.6589×D²</p>
-            <p>Made with 💚 for a greener planet | <strong>EcoTree Tracker</strong></p>
-            
+            <p style="color: rgba(255,255,255,.4); font-size: 0.82rem;">Based on research: AGB = 34.4703 - 8.0671 x D + 0.6589 x D<sup>2</sup></p>
+            <p style="color: rgba(255,255,255,.55); font-size: 0.88rem; margin-top: 6px;">Made with <span style="color: #10b981;">&#9829;</span> for a greener planet &mdash; <strong>EcoTree Tracker v3.0</strong></p>
+
             <!-- Project Guide Section -->
             <div class="guide-section">
-                <h3>🎓 Project Guide</h3>
+                <h3><i class="fas fa-graduation-cap"></i> Project Guide</h3>
                 <div class="guide-card">
                     <div class="guide-photo">
                         <img src="faculty/WhatsApp Image 2026-02-17 at 12.14.39 PM.jpeg" alt="Dr. Abha Manohar">
@@ -626,7 +627,7 @@
             </div>
             
             <div class="team-section">
-                <h3>👥 Our Team</h3>
+                <h3><i class="fas fa-users"></i> Our Team</h3>
                 <div class="team-grid">
                     <!-- Team Member 1: Durgesh Kumar -->
                     <div class="team-card">
@@ -765,11 +766,11 @@
             notification.id = 'updateNotification';
             notification.innerHTML = `
                 <div class="update-popup">
-                    <div class="update-icon">🚀</div>
+                    <div class="update-icon"><i class="fas fa-rocket"></i></div>
                     <div class="update-content">
                         <h3>New Update Available!</h3>
                         <p>Version ${version} with new features & improvements</p>
-                        <p class="update-note">✨ Premium UI + Tree Information for Agriculture Students</p>
+                        <p class="update-note">Premium UI + Tree Information for Agriculture Students</p>
                     </div>
                     <div class="update-buttons">
                         <button onclick="location.reload()" class="update-btn-primary">
@@ -796,85 +797,82 @@
         });
     </script>
     <style>
-        @keyframes slideUp {
-            from { transform: translateX(-50%) translateY(100px); opacity: 0; }
-            to { transform: translateX(-50%) translateY(0); opacity: 1; }
-        }
-        
+        /* Update Popup */
         .update-popup {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: linear-gradient(135deg, #667eea, #764ba2);
+            background: rgba(17, 29, 51, 0.98);
+            border: 1px solid rgba(255,255,255,0.1);
             color: white;
             padding: 40px;
-            border-radius: 25px;
-            box-shadow: 0 25px 80px rgba(0,0,0,0.4);
+            border-radius: 24px;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.5);
             z-index: 10001;
             text-align: center;
-            min-width: 350px;
-            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            min-width: 320px;
+            max-width: 90%;
+            animation: popIn 0.4s ease-out;
+            backdrop-filter: blur(16px);
         }
         
         @keyframes popIn {
-            from { transform: translate(-50%, -50%) scale(0.5); opacity: 0; }
+            from { transform: translate(-50%, -50%) scale(0.9); opacity: 0; }
             to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
         }
         
         .update-icon {
-            font-size: 60px;
-            margin-bottom: 20px;
-            animation: bounce 1s ease-in-out infinite;
-        }
-        
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-15px); }
+            font-size: 48px;
+            margin-bottom: 16px;
         }
         
         .update-content h3 {
-            font-size: 1.8rem;
-            margin-bottom: 10px;
-            font-weight: 700;
+            font-size: 1.4rem;
+            margin-bottom: 8px;
+            font-weight: 800;
+            color: rgba(255,255,255,.95);
         }
         
         .update-content p {
-            font-size: 1rem;
-            opacity: 0.9;
-            margin-bottom: 5px;
+            font-size: 0.88rem;
+            color: rgba(255,255,255,.5);
+            margin-bottom: 4px;
         }
         
         .update-note {
-            background: rgba(255,255,255,0.2);
+            background: rgba(16,185,129,0.1);
+            border: 1px solid rgba(16,185,129,0.15);
             padding: 10px 15px;
             border-radius: 10px;
-            margin-top: 15px !important;
-            font-size: 0.9rem !important;
+            margin-top: 12px !important;
+            font-size: 0.82rem !important;
+            color: #34d399 !important;
         }
         
         .update-buttons {
-            margin-top: 25px;
+            margin-top: 20px;
         }
         
         .update-btn-primary {
-            background: white;
-            color: #764ba2;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
             border: none;
-            padding: 15px 40px;
-            border-radius: 50px;
-            font-size: 1.1rem;
+            padding: 14px 36px;
+            border-radius: 14px;
+            font-size: 1rem;
             font-weight: 700;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.3s;
             display: inline-flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
+            font-family: inherit;
         }
         
         .update-btn-primary:hover {
-            transform: scale(1.05);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(16,185,129,0.3);
         }
         
         #updateNotification::before {
@@ -888,293 +886,29 @@
             backdrop-filter: blur(5px);
             z-index: 10000;
         }
-        
-        /* Floating Leaves */
-        .leaves-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 0;
-            overflow: hidden;
-        }
-        
-        .leaf {
-            position: absolute;
-            font-size: 20px;
-            animation: falling linear infinite;
-            opacity: 0.7;
-        }
-        
-        @keyframes falling {
-            0% {
-                transform: translateY(-100px) rotate(0deg) translateX(0);
-                opacity: 1;
-            }
-            100% {
-                transform: translateY(100vh) rotate(720deg) translateX(100px);
-                opacity: 0.3;
-            }
-        }
-        
-        /* Dark Mode Toggle */
-        .dark-mode-toggle {
-            position: fixed;
-            top: 100px;
-            right: 20px;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border: none;
+
+        /* Header action buttons */
+        .header-action-btn {
+            padding: 8px 18px;
+            font-size: 0.82rem;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
             cursor: pointer;
-            z-index: 1000;
+            font-family: inherit;
+            font-weight: 600;
+            transition: all 0.3s;
             display: flex;
             align-items: center;
-            justify-content: center;
-            font-size: 1.3rem;
-            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
-            transition: all 0.3s ease;
+            gap: 6px;
+            color: rgba(255,255,255,0.7);
+            background: rgba(255,255,255,0.06);
         }
-        
-        .dark-mode-toggle:hover {
-            transform: scale(1.1) rotate(15deg);
-        }
-        
-        /* Sound Toggle */
-        .sound-toggle {
-            position: fixed;
-            top: 160px;
-            right: 20px;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #00d4aa, #00b894);
-            color: white;
-            border: none;
-            cursor: pointer;
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.3rem;
-            box-shadow: 0 5px 20px rgba(0, 212, 170, 0.4);
-            transition: all 0.3s ease;
-        }
-        
-        .sound-toggle:hover {
-            transform: scale(1.1);
-        }
-        
-        .sound-toggle.muted i::before {
-            content: "\\f6a9";
-        }
-        
-        /* Confetti */
-        .confetti-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 9999;
-        }
-        
-        .confetti {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            animation: confetti-fall 3s ease-out forwards;
-        }
-        
-        @keyframes confetti-fall {
-            0% {
-                transform: translateY(0) rotate(0deg);
-                opacity: 1;
-            }
-            100% {
-                transform: translateY(100vh) rotate(720deg);
-                opacity: 0;
-            }
-        }
-        
-        /* Dark Mode Styles */
-        body.dark-mode {
-            --dark-color: #f8f9fa;
-            --light-color: #2d3436;
-        }
-        
-        body.dark-mode .header,
-        body.dark-mode .card {
-            background: rgba(45, 52, 54, 0.95);
-            color: #f8f9fa;
-        }
-        
-        body.dark-mode .header h1 {
-            background: linear-gradient(135deg, #00d4aa, #4facfe, #f093fb);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        body.dark-mode .header p,
-        body.dark-mode .form-group label,
-        body.dark-mode h2, body.dark-mode h3 {
-            color: #f8f9fa;
-        }
-        
-        body.dark-mode .form-group input,
-        body.dark-mode .form-group select {
-            background: #3d3d3d;
-            color: #f8f9fa;
-            border-color: #555;
-        }
-        
-        body.dark-mode .result-card h3,
-        body.dark-mode .result-unit {
-            color: #ddd;
-        }
-        
-        body.dark-mode .dark-mode-toggle {
-            background: linear-gradient(135deg, #ffd700, #f39c12);
-        }
+        .header-action-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .logout-btn-header { background: rgba(239,68,68,0.1); color: #fca5a5; border-color: rgba(239,68,68,0.15); }
+        .logout-btn-header:hover { background: rgba(239,68,68,0.2); }
+        .install-btn-header { background: rgba(16,185,129,0.1); color: #34d399; border-color: rgba(16,185,129,0.15); }
+        .install-btn-header:hover { background: rgba(16,185,129,0.2); }
     </style>
-    
-    <script>
-        // ========== FLOATING LEAVES ==========
-        function createLeaves() {
-            const container = document.getElementById('leavesContainer');
-            const leafEmojis = ['🍃', '🌿', '🍂', '☘️', '🌱'];
-            
-            for (let i = 0; i < 15; i++) {
-                setTimeout(() => {
-                    const leaf = document.createElement('div');
-                    leaf.className = 'leaf';
-                    leaf.textContent = leafEmojis[Math.floor(Math.random() * leafEmojis.length)];
-                    leaf.style.left = Math.random() * 100 + '%';
-                    leaf.style.animationDuration = (Math.random() * 10 + 10) + 's';
-                    leaf.style.fontSize = (Math.random() * 15 + 15) + 'px';
-                    leaf.style.animationDelay = Math.random() * 5 + 's';
-                    container.appendChild(leaf);
-                    
-                    // Remove leaf after animation
-                    setTimeout(() => leaf.remove(), 20000);
-                }, i * 2000);
-            }
-            
-            // Continuously create leaves
-            setInterval(() => {
-                const leaf = document.createElement('div');
-                leaf.className = 'leaf';
-                leaf.textContent = leafEmojis[Math.floor(Math.random() * leafEmojis.length)];
-                leaf.style.left = Math.random() * 100 + '%';
-                leaf.style.animationDuration = (Math.random() * 10 + 10) + 's';
-                leaf.style.fontSize = (Math.random() * 15 + 15) + 'px';
-                container.appendChild(leaf);
-                setTimeout(() => leaf.remove(), 20000);
-            }, 3000);
-        }
-        
-        // ========== DARK MODE ==========
-        const darkModeToggle = document.getElementById('darkModeToggle');
-        const darkModeIcon = document.getElementById('darkModeIcon');
-        
-        function updateDarkModeIcon() {
-            if (document.body.classList.contains('dark-mode')) {
-                darkModeIcon.className = 'fas fa-sun';
-            } else {
-                darkModeIcon.className = 'fas fa-moon';
-            }
-        }
-        
-        // Check saved preference
-        if (localStorage.getItem('darkMode') === 'true') {
-            document.body.classList.add('dark-mode');
-            updateDarkModeIcon();
-        }
-        
-        darkModeToggle.addEventListener('click', () => {
-            document.body.classList.toggle('dark-mode');
-            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
-            updateDarkModeIcon();
-        });
-        
-        // ========== SOUND EFFECTS ==========
-        let soundEnabled = true;
-        
-        function playSound(type) {
-            if (!soundEnabled) return;
-            
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            if (type === 'click') {
-                oscillator.frequency.value = 800;
-                gainNode.gain.value = 0.1;
-                oscillator.start();
-                oscillator.stop(audioContext.currentTime + 0.1);
-            } else if (type === 'success') {
-                oscillator.frequency.value = 523.25; // C5
-                gainNode.gain.value = 0.1;
-                oscillator.start();
-                setTimeout(() => oscillator.frequency.value = 659.25, 100); // E5
-                setTimeout(() => oscillator.frequency.value = 783.99, 200); // G5
-                oscillator.stop(audioContext.currentTime + 0.4);
-            }
-        }
-        
-        // ========== CONFETTI EFFECT ==========
-        function createConfetti() {
-            const container = document.getElementById('confettiContainer');
-            const colors = ['#667eea', '#764ba2', '#f093fb', '#00d4aa', '#ffd700', '#ff6b6b', '#4facfe'];
-            
-            for (let i = 0; i < 100; i++) {
-                setTimeout(() => {
-                    const confetti = document.createElement('div');
-                    confetti.className = 'confetti';
-                    confetti.style.left = Math.random() * 100 + '%';
-                    confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
-                    confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
-                    confetti.style.width = (Math.random() * 10 + 5) + 'px';
-                    confetti.style.height = (Math.random() * 10 + 5) + 'px';
-                    confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
-                    container.appendChild(confetti);
-                    
-                    setTimeout(() => confetti.remove(), 3000);
-                }, i * 20);
-            }
-            
-            playSound('success');
-        }
-        
-        // Hook confetti to calculate button
-        document.addEventListener('DOMContentLoaded', () => {
-            createLeaves();
-            
-            // Add confetti on successful calculation
-            const originalDisplayResults = window.displayResults;
-            if (typeof displayResults === 'function') {
-                const form = document.getElementById('treeForm');
-                form.addEventListener('submit', () => {
-                    setTimeout(createConfetti, 500);
-                });
-            }
-        });
-        
-        // Add click sounds to all buttons
-        document.addEventListener('click', (e) => {
-            if (e.target.matches('button, .btn-primary, .btn-secondary, .tree-option')) {
-                playSound('click');
-            }
-        });
-    </script>
 
     <!-- ML Tree Measurement Script -->
     <script src="ml-tree-measurement.js"></script>
@@ -1182,4 +916,3 @@
     <script src="camera-handler.js"></script>
 </body>
 </html>
-

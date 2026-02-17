@@ -3,157 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🎓 Student Login - EcoTree Tracker</title>
+    <title>Student Login - EcoTree Tracker</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
-            min-height: 100vh;
-            min-height: 100dvh;
-            display: flex; 
-            flex-direction: column; 
-            align-items: center; 
-            justify-content: center;
-            padding: 20px;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        .back-btn { 
-            position: fixed; 
-            top: 16px; 
-            left: 16px; 
-            color: white; 
-            text-decoration: none; 
-            padding: 10px 18px; 
-            border-radius: 12px; 
-            background: rgba(255,255,255,0.18);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            font-weight: 600; 
-            font-size: 0.9rem;
-            transition: all 0.3s; 
-            z-index: 10;
-            border: 1px solid rgba(255,255,255,0.2);
-        }
-        .back-btn:hover, .back-btn:active { background: rgba(255,255,255,0.3); }
-        .login-card { 
-            background: white; 
-            padding: 36px 28px; 
-            border-radius: 24px; 
-            box-shadow: 0 16px 48px rgba(0,0,0,0.2); 
-            max-width: 420px; 
-            width: 100%; 
-            text-align: center;
-            animation: slideUp 0.6s ease-out;
-        }
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(24px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .logo-icon { 
-            width: 80px; 
-            height: 80px; 
-            border-radius: 22px;
-            background: linear-gradient(135deg, rgba(240,147,251,0.12), rgba(245,87,108,0.12));
-            display: flex; 
-            align-items: center; 
-            justify-content: center;
-            margin: 0 auto 20px; 
-            font-size: 40px;
-        }
-        .login-card h1 { color: #1a1a2e; font-size: 1.6rem; font-weight: 700; margin-bottom: 6px; }
-        .login-card > p { color: #6b7280; margin-bottom: 28px; font-size: 0.9rem; line-height: 1.5; }
-        .form-group { margin-bottom: 18px; text-align: left; }
-        .form-group label { 
-            display: block; 
-            margin-bottom: 6px; 
-            font-weight: 600; 
-            color: #374151; 
-            font-size: 0.9rem;
-        }
-        .form-group input { 
-            width: 100%; 
-            padding: 14px 16px; 
-            border: 2px solid #e5e7eb; 
-            border-radius: 14px; 
-            font-size: 16px; 
-            font-family: inherit;
-            transition: all 0.3s;
-            background: #f9fafb;
-        }
-        .form-group input:focus { 
-            outline: none; 
-            border-color: #f5576c; 
-            background: white;
-            box-shadow: 0 0 0 4px rgba(245,87,108,0.1);
-        }
-        .form-group input.code-input { 
-            text-transform: uppercase; 
-            letter-spacing: 4px; 
-            font-weight: 700; 
-            text-align: center;
-            font-size: 20px;
-            padding: 16px;
-        }
-        .btn-login { 
-            width: 100%; 
-            padding: 16px; 
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
-            color: white; 
-            border: none; 
-            border-radius: 14px; 
-            font-size: 16px; 
-            font-weight: 700; 
-            cursor: pointer; 
-            transition: all 0.3s;
-            font-family: inherit;
-            margin-top: 6px;
-        }
-        .btn-login:hover, .btn-login:active { 
-            transform: translateY(-2px); 
-            box-shadow: 0 8px 24px rgba(245,87,108,0.35); 
-        }
-        .error-msg { 
-            color: #ef4444; 
-            margin-top: 16px; 
-            display: none; 
-            font-size: 0.9rem;
-            padding: 10px 14px;
-            background: #fef2f2;
-            border-radius: 10px;
-            border: 1px solid #fecaca;
-        }
-
-        @media (max-width: 380px) {
-            .login-card { padding: 28px 20px; }
-            .login-card h1 { font-size: 1.4rem; }
-        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter','Segoe UI',sans-serif;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow-y:auto;background:#0a1628;color:#fff}
+        .bg-mesh{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;background:radial-gradient(ellipse at 30% 40%,rgba(16,185,129,.15) 0%,transparent 50%),radial-gradient(ellipse at 70% 70%,rgba(59,130,246,.12) 0%,transparent 50%),linear-gradient(180deg,#0a1628 0%,#111d33 50%,#0f172a 100%)}
+        .back-btn{position:fixed;top:16px;left:16px;color:rgba(255,255,255,.7);text-decoration:none;padding:10px 18px;border-radius:12px;background:rgba(255,255,255,.06);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);font-weight:600;font-size:.85rem;transition:all .3s;z-index:10;border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:8px}
+        .back-btn:hover,.back-btn:active{background:rgba(255,255,255,.12);color:#fff}
+        .login-card{position:relative;z-index:1;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);padding:40px 32px;border-radius:24px;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);max-width:440px;width:100%;text-align:center;animation:slideUp .6s ease-out;box-shadow:0 24px 64px rgba(0,0,0,.3)}
+        @keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+        .logo-icon{width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,rgba(16,185,129,.15),rgba(52,211,153,.15));display:flex;align-items:center;justify-content:center;margin:0 auto 20px;font-size:32px;color:#34d399}
+        .login-card h1{color:rgba(255,255,255,.95);font-size:1.6rem;font-weight:800;margin-bottom:6px}
+        .login-card>p{color:rgba(255,255,255,.45);margin-bottom:28px;font-size:.88rem;line-height:1.6}
+        .form-group{margin-bottom:18px;text-align:left}
+        .form-group label{display:block;margin-bottom:8px;font-weight:600;color:rgba(255,255,255,.6);font-size:.82rem;letter-spacing:.3px;text-transform:uppercase}
+        .form-group input{width:100%;padding:14px 16px;border:1.5px solid rgba(255,255,255,.1);border-radius:14px;font-size:16px;font-family:inherit;transition:all .3s;background:rgba(255,255,255,.05);color:#fff}
+        .form-group input::placeholder{color:rgba(255,255,255,.25)}
+        .form-group input:focus{outline:none;border-color:#10b981;background:rgba(16,185,129,.05);box-shadow:0 0 0 4px rgba(16,185,129,.1)}
+        .form-group input.code-input{text-transform:uppercase;letter-spacing:6px;font-weight:700;text-align:center;font-size:22px;padding:16px;font-family:'Courier New',monospace;color:#34d399}
+        .btn-login{width:100%;padding:16px;background:linear-gradient(135deg,#10b981 0%,#059669 100%);color:#fff;border:none;border-radius:14px;font-size:1rem;font-weight:700;cursor:pointer;transition:all .3s;font-family:inherit;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:8px}
+        .btn-login:hover,.btn-login:active{transform:translateY(-2px);box-shadow:0 12px 32px rgba(16,185,129,.3)}
+        .btn-login:disabled{opacity:.6;cursor:not-allowed;transform:none}
+        .error-msg{color:#fca5a5;margin-top:16px;display:none;font-size:.85rem;padding:12px 16px;background:rgba(239,68,68,.1);border-radius:12px;border:1px solid rgba(239,68,68,.2);text-align:left}
+        .divider{display:flex;align-items:center;gap:12px;margin:24px 0 0;color:rgba(255,255,255,.25);font-size:.75rem}
+        .divider::before,.divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.08)}
+        .hint{color:rgba(255,255,255,.3);font-size:.75rem;margin-top:8px;line-height:1.5}
+        @media(max-width:380px){.login-card{padding:28px 20px}.login-card h1{font-size:1.35rem}.form-group input.code-input{font-size:18px;letter-spacing:4px}}
+        @supports(padding:env(safe-area-inset-bottom)){body{padding-bottom:calc(20px + env(safe-area-inset-bottom))}}
+        .spinner{display:none;width:20px;height:20px;border:2.5px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
     </style>
 </head>
 <body>
+    <div class="bg-mesh"></div>
     <a href="login.html" class="back-btn"><i class="fas fa-arrow-left"></i> Back</a>
 
     <div class="login-card">
-        <div class="logo-icon">👨‍🎓</div>
+        <div class="logo-icon"><i class="fas fa-user-graduate"></i></div>
         <h1>Student Login</h1>
         <p>Enter the access code provided by your faculty</p>
         <form id="studentLoginForm">
             <div class="form-group">
                 <label><i class="fas fa-user"></i> Your Name / ID</label>
-                <input type="text" id="studentName" placeholder="Enter your name" required>
+                <input type="text" id="studentName" placeholder="Enter your name" required autocomplete="name">
             </div>
             <div class="form-group">
                 <label><i class="fas fa-key"></i> Access Code</label>
-                <input type="text" id="accessCode" class="code-input" placeholder="XXXXX" maxlength="5" required>
+                <input type="text" id="accessCode" class="code-input" placeholder="_ _ _ _ _" maxlength="5" required autocomplete="off">
             </div>
-            <button type="submit" class="btn-login"><i class="fas fa-sign-in-alt"></i> Start Data Collection</button>
+            <button type="submit" class="btn-login" id="loginBtn">
+                <span id="btnText"><i class="fas fa-sign-in-alt"></i> Start Data Collection</span>
+                <div class="spinner" id="spinner"></div>
+            </button>
         </form>
         <p class="error-msg" id="errorMsg">Invalid access code. Please check with your faculty.</p>
+        <div class="divider">Secure Authentication</div>
+        <p class="hint">Enter the 5-character code your faculty shared with you. Contact your faculty if you don't have one.</p>
     </div>
 
-    <!-- Version 3.0 -->
     <script type="module">
         import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -172,9 +82,18 @@
 
         document.getElementById('studentLoginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const btn = document.getElementById('loginBtn');
+            const btnText = document.getElementById('btnText');
+            const spinner = document.getElementById('spinner');
+            const errorMsg = document.getElementById('errorMsg');
             const studentName = document.getElementById('studentName').value.trim();
             const accessCode = document.getElementById('accessCode').value.toUpperCase().trim();
-            
+
+            errorMsg.style.display = 'none';
+            btn.disabled = true;
+            btnText.style.display = 'none';
+            spinner.style.display = 'block';
+
             try {
                 const passDoc = await getDoc(doc(db, 'passes', accessCode));
                 if (passDoc.exists() && passDoc.data().active) {
@@ -188,12 +107,17 @@
                     }));
                     window.location.href = 'index.html';
                 } else {
-                    document.getElementById('errorMsg').style.display = 'block';
+                    errorMsg.innerHTML = '<i class="fas fa-exclamation-circle"></i> Invalid access code. Please check with your faculty.';
+                    errorMsg.style.display = 'block';
                 }
             } catch (error) {
                 console.error('Login error:', error);
-                document.getElementById('errorMsg').textContent = 'Connection error. Try again.';
-                document.getElementById('errorMsg').style.display = 'block';
+                errorMsg.innerHTML = '<i class="fas fa-wifi"></i> Connection error. Please try again.';
+                errorMsg.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btnText.style.display = '';
+                spinner.style.display = 'none';
             }
         });
     </script>

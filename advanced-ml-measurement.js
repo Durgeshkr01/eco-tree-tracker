@@ -514,9 +514,15 @@ class AdvancedTreeML {
         const width = imageData.width;
         const height = imageData.height;
         
-        let greenPixels = 0, brownPixels = 0, skinPixels = 0, grayPixels = 0, skyPixels = 0;
+        let greenPixels = 0, brownPixels = 0, pureSkinPixels = 0, grayPixels = 0, skyPixels = 0;
         const step = width > 1000 ? 2 : 1;
         let sampledPixels = 0;
+        
+        // Skin region spatial tracking (grid-based clustering)
+        const gridCols = 8, gridRows = 8;
+        const skinGrid = new Float32Array(gridCols * gridRows);
+        const gridW = Math.floor(width / gridCols);
+        const gridH = Math.floor(height / gridRows);
         
         for (let y = 0; y < height; y += step) {
             for (let x = 0; x < width; x += step) {
@@ -525,23 +531,52 @@ class AdvancedTreeML {
                 const hsv = this.rgbToHsv(r, g, b);
                 sampledPixels++;
                 
-                if (hsv.h >= 40 && hsv.h <= 170 && hsv.s > 15 && hsv.v > 15) greenPixels++;
-                if (hsv.h >= 10 && hsv.h <= 45 && hsv.s >= 15 && hsv.s <= 80 && hsv.v >= 15 && hsv.v <= 75) brownPixels++;
-                if (hsv.h >= 5 && hsv.h <= 35 && hsv.s >= 20 && hsv.s <= 70 && hsv.v >= 50) skinPixels++;
-                if (hsv.s < 15 && hsv.v > 30 && hsv.v < 85) grayPixels++;
-                if (hsv.h >= 180 && hsv.h <= 250 && hsv.s > 20 && hsv.v > 50) skyPixels++;
+                // Green foliage
+                const isGreen = hsv.h >= 40 && hsv.h <= 170 && hsv.s > 15 && hsv.v > 15;
+                if (isGreen) greenPixels++;
+                
+                // Brown bark/trunk
+                const isBrown = hsv.h >= 10 && hsv.h <= 50 && hsv.s >= 12 && hsv.s <= 85 && hsv.v >= 10 && hsv.v <= 80;
+                if (isBrown) brownPixels++;
+                
+                // Skin detection - STRICT: only count if NOT also brown/bark
+                // Narrow hue range for actual skin, require higher saturation
+                const isSkinHue = hsv.h >= 8 && hsv.h <= 28 && hsv.s >= 30 && hsv.s <= 65 && hsv.v >= 55 && hsv.v <= 90;
+                // Additional check: real skin has specific R>G>B pattern
+                const hasSkinRGB = r > 120 && g > 80 && b > 50 && r > g && g > b && (r - b) > 30;
+                
+                if (isSkinHue && hasSkinRGB && !isBrown) {
+                    pureSkinPixels++;
+                    // Track grid cell for spatial clustering
+                    const gx = Math.min(gridCols - 1, Math.floor(x / gridW));
+                    const gy = Math.min(gridRows - 1, Math.floor(y / gridH));
+                    skinGrid[gy * gridCols + gx]++;
+                }
+                
+                if (hsv.s < 12 && hsv.v > 35 && hsv.v < 80) grayPixels++;
+                if (hsv.h >= 190 && hsv.h <= 245 && hsv.s > 25 && hsv.v > 55) skyPixels++;
             }
         }
         
         const greenPercent = (greenPixels / sampledPixels) * 100;
         const brownPercent = (brownPixels / sampledPixels) * 100;
-        const skinPercent = (skinPixels / sampledPixels) * 100;
+        const skinPercent = (pureSkinPixels / sampledPixels) * 100;
         const grayPercent = (grayPixels / sampledPixels) * 100;
         
-        const hasTreeColors = (greenPercent > 4) || (brownPercent > 3);
-        const hasPerson = skinPercent > 12;
-        const hasVehicleOrBuilding = grayPercent > 50;
-        const isTree = hasTreeColors && !hasPerson && !hasVehicleOrBuilding;
+        // Check skin clustering - real human has concentrated skin in few grid cells
+        let skinClusterScore = 0;
+        const maxSkinCell = Math.max.apply(null, Array.from(skinGrid));
+        const totalSkinCells = Array.from(skinGrid).filter(function(v) { return v > 0; }).length;
+        if (pureSkinPixels > 0 && totalSkinCells > 0) {
+            skinClusterScore = maxSkinCell / pureSkinPixels; // High = concentrated = likely human
+        }
+        
+        // Tree detection: relaxed - accept if ANY tree colors present
+        const hasTreeColors = (greenPercent > 3) || (brownPercent > 2);
+        // Human detection: very strict - need high skin %, clustered, AND low tree colors
+        const hasPerson = skinPercent > 30 && skinClusterScore > 0.15 && !hasTreeColors;
+        const hasVehicleOrBuilding = grayPercent > 60 && !hasTreeColors;
+        const isTree = hasTreeColors;
         
         return {
             isTree: isTree,
@@ -554,9 +589,9 @@ class AdvancedTreeML {
     }
 
     _getValidationError(hasTreeColors, hasPerson, hasVehicleOrBuilding) {
-        if (hasPerson) return 'Human detected! Please photograph only the tree.';
-        if (hasVehicleOrBuilding) return 'Car/Building detected! Focus on the tree only.';
-        if (!hasTreeColors) return 'No tree detected! Ensure green leaves or brown trunk is visible.';
+        if (!hasTreeColors && hasPerson) return 'No tree detected - image appears to be of a person. Please photograph a tree.';
+        if (!hasTreeColors && hasVehicleOrBuilding) return 'No tree detected - image appears to be a building/vehicle. Focus on a tree.';
+        if (!hasTreeColors) return 'No tree detected. Ensure green leaves or brown trunk is visible in the photo.';
         return null;
     }
 
@@ -601,12 +636,12 @@ class AdvancedTreeML {
         
         // FUSION: Weighted average
         var methodWeights = [];
-        var m1Weight = (estimatedDistanceCm > 80 && estimatedDistanceCm < 1500) ? 0.45 : 0.2;
+        var m1Weight = (estimatedDistanceCm > 80 && estimatedDistanceCm < 1500) ? 0.50 : 0.25;
         methodWeights.push({ value: trunkDiameterCm_method1, weight: m1Weight, name: 'camera_geometry' });
-        methodWeights.push({ value: trunkDiameterCm_method2, weight: 0.35, name: 'proportional' });
+        methodWeights.push({ value: trunkDiameterCm_method2, weight: 0.30, name: 'proportional' });
         
         if (trunkDiameterCm_method3 !== null) {
-            methodWeights.push({ value: trunkDiameterCm_method3, weight: 0.20, name: 'species_avg' });
+            methodWeights.push({ value: trunkDiameterCm_method3, weight: 0.25, name: 'species_calibration' });
         }
         
         var totalWeight = methodWeights.reduce(function(sum, m) { return sum + m.weight; }, 0);
@@ -624,8 +659,8 @@ class AdvancedTreeML {
             }
         }
         
-        // Global sanity: realistic tree diameter 5-200 cm
-        finalDiameter = Math.max(5, Math.min(200, finalDiameter));
+        // Global sanity: realistic tree diameter 3-250 cm
+        finalDiameter = Math.max(3, Math.min(250, finalDiameter));
         
         var circumference = Math.PI * finalDiameter;
         var confidence = this._calculateConfidence(bounds, treeFillRatio, methodWeights, selectedSpecies, imgW, imgH);
@@ -665,31 +700,31 @@ class AdvancedTreeML {
     }
 
     _calculateConfidence(bounds, treeFillRatio, methodWeights, selectedSpecies, imgW, imgH) {
-        var confidence = 35;
+        var confidence = 40;
         
-        if (treeFillRatio > 0.25 && treeFillRatio < 0.85) confidence += 15;
-        else if (treeFillRatio > 0.15 && treeFillRatio < 0.95) confidence += 8;
+        if (treeFillRatio > 0.25 && treeFillRatio < 0.85) confidence += 12;
+        else if (treeFillRatio > 0.15 && treeFillRatio < 0.95) confidence += 6;
         
         var centerOffset = Math.abs(bounds.trunkCenterX - imgW / 2) / imgW;
-        if (centerOffset < 0.15) confidence += 12;
-        else if (centerOffset < 0.25) confidence += 6;
+        if (centerOffset < 0.15) confidence += 10;
+        else if (centerOffset < 0.25) confidence += 5;
         
-        if (bounds.trunkWidthPx > 30 && bounds.trunkWidthPx < imgW * 0.4) confidence += 10;
+        if (bounds.trunkWidthPx > 20 && bounds.trunkWidthPx < imgW * 0.45) confidence += 8;
         
         var aspectRatio = bounds.height / Math.max(1, bounds.width);
-        if (aspectRatio > 1.2) confidence += 8;
+        if (aspectRatio > 1.0) confidence += 6;
         
-        if (selectedSpecies) confidence += 10;
+        if (selectedSpecies) confidence += 12;
         
         if (methodWeights.length >= 2) {
             var values = methodWeights.map(function(m) { return m.value; });
             var avg = values.reduce(function(s, v) { return s + v; }, 0) / values.length;
             var maxDev = Math.max.apply(null, values.map(function(v) { return Math.abs(v - avg) / avg; }));
-            if (maxDev < 0.3) confidence += 10;
-            else if (maxDev < 0.5) confidence += 5;
+            if (maxDev < 0.25) confidence += 10;
+            else if (maxDev < 0.4) confidence += 5;
         }
         
-        return Math.min(92, confidence);
+        return Math.min(95, confidence);
     }
 
     // ==================== MAIN MEASUREMENT FUNCTION ====================
@@ -704,12 +739,19 @@ class AdvancedTreeML {
             var context = canvas.getContext('2d');
             var imageData = context.getImageData(0, 0, canvas.width, canvas.height);
             
-            // Step 1: Validate tree presence
+            // Step 1: Validate tree presence (lenient - allow if any tree colors found)
             var validation = this.validateTreePresence(imageData);
             console.log('Tree validation:', validation);
             
             if (!validation.isTree) {
-                throw new Error(validation.errorMessage || 'No tree detected!');
+                console.warn('Tree validation warning:', validation.errorMessage);
+                // Only block if absolutely no tree colors detected
+                if (parseFloat(validation.greenPercent) < 1 && parseFloat(validation.brownPercent) < 1) {
+                    throw new Error(validation.errorMessage || 'No tree detected! Please ensure the tree is visible in the photo.');
+                }
+                // Otherwise continue with warning
+                validation.isTree = true;
+                validation.errorMessage = null;
             }
             
             // Step 2: Gaussian blur for noise reduction
@@ -719,7 +761,7 @@ class AdvancedTreeML {
             var segResult = this.segmentTreeAdvanced(blurred);
             console.log('Segmentation: Green ' + segResult.greenPercent + '%, Trunk ' + segResult.trunkPercent + '%');
             
-            if (parseFloat(segResult.greenPercent) < 3 && parseFloat(segResult.trunkPercent) < 2) {
+            if (parseFloat(segResult.greenPercent) < 1 && parseFloat(segResult.trunkPercent) < 1) {
                 throw new Error('Tree not clearly visible. Ensure tree fills 30-80% of frame with good lighting.');
             }
             
@@ -727,7 +769,7 @@ class AdvancedTreeML {
             var bounds = this.detectTrunkPrecise(canvas, segResult.mask, segResult.width, segResult.height);
             console.log('Trunk detected:', bounds);
             
-            if (bounds.trunkWidthPx < 10) {
+            if (bounds.trunkWidthPx < 5) {
                 throw new Error('Trunk not clearly detected. Ensure good lighting on trunk and stand 2-3m away.');
             }
             
@@ -789,71 +831,99 @@ class AdvancedTreeML {
         var context = canvas.getContext('2d');
         
         // Semi-transparent trunk highlight
-        context.fillStyle = 'rgba(231, 76, 60, 0.15)';
+        context.fillStyle = 'rgba(46, 204, 113, 0.12)';
         context.fillRect(bounds.trunkLeft, bounds.y, bounds.trunkRight - bounds.trunkLeft, bounds.height);
         
-        // Tree bounding box (dashed)
+        // Tree bounding box (dashed, green)
         context.strokeStyle = '#27ae60';
-        context.lineWidth = 3;
-        context.setLineDash([8, 4]);
+        context.lineWidth = 2.5;
+        context.setLineDash([10, 5]);
         context.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height);
         context.setLineDash([]);
         
-        // Trunk measurement line at breast height
+        // Trunk measurement line at breast height (red)
         context.strokeStyle = '#e74c3c';
         context.lineWidth = 3;
         context.beginPath();
-        context.moveTo(bounds.trunkLeft - 10, bounds.breastHeightY);
-        context.lineTo(bounds.trunkRight + 10, bounds.breastHeightY);
+        context.moveTo(bounds.trunkLeft - 15, bounds.breastHeightY);
+        context.lineTo(bounds.trunkRight + 15, bounds.breastHeightY);
         context.stroke();
         
         // Arrowheads
-        this._drawArrowHead(context, bounds.trunkLeft - 10, bounds.breastHeightY, 'right', 10);
-        this._drawArrowHead(context, bounds.trunkRight + 10, bounds.breastHeightY, 'left', 10);
+        this._drawArrowHead(context, bounds.trunkLeft - 15, bounds.breastHeightY, 'right', 10);
+        this._drawArrowHead(context, bounds.trunkRight + 15, bounds.breastHeightY, 'left', 10);
         
-        // DBH line label
-        context.fillStyle = 'rgba(231, 76, 60, 0.8)';
-        context.fillRect(bounds.trunkRight + 15, bounds.breastHeightY - 12, 90, 24);
-        context.fillStyle = 'white';
-        context.font = 'bold 11px Arial';
-        context.fillText('DBH Line (1.37m)', bounds.trunkRight + 20, bounds.breastHeightY + 4);
-        
-        // TREE DETECTED badge
-        context.fillStyle = 'rgba(39, 174, 96, 0.92)';
-        this._roundRect(context, 10, 10, 220, 36, 6);
+        // DBH line label (clean pill)
+        var dbhLabelX = bounds.trunkRight + 20;
+        var dbhLabelY = bounds.breastHeightY;
+        context.fillStyle = 'rgba(231, 76, 60, 0.85)';
+        this._roundRect(context, dbhLabelX, dbhLabelY - 13, 100, 26, 13);
         context.fill();
         context.fillStyle = 'white';
-        context.font = 'bold 16px Arial';
-        context.fillText('TREE DETECTED', 22, 34);
+        context.font = 'bold 11px Arial';
+        context.textAlign = 'center';
+        context.fillText('DBH (1.37m)', dbhLabelX + 50, dbhLabelY + 4);
+        context.textAlign = 'left';
         
-        // Measurement labels
-        this._drawLabel(context, 'Height: ' + measurements.height + ' cm', bounds.x + 5, bounds.y - 15, '#27ae60');
-        this._drawLabel(context, 'Dia: ' + measurements.trunkWidth + ' cm | Circ: ' + measurements.circumference + ' cm', 
-            bounds.trunkLeft, bounds.breastHeightY + 30, '#e74c3c');
-        this._drawLabel(context, 'Confidence: ' + measurements.confidence + '%', 
-            bounds.x + bounds.width - 170, bounds.y - 15, '#3498db');
+        // TREE DETECTED badge (top-left, professional)
+        context.fillStyle = 'rgba(39, 174, 96, 0.9)';
+        this._roundRect(context, 10, 10, 190, 34, 17);
+        context.fill();
+        // White border
+        context.strokeStyle = 'rgba(255,255,255,0.5)';
+        context.lineWidth = 1.5;
+        this._roundRect(context, 10, 10, 190, 34, 17);
+        context.stroke();
+        context.fillStyle = 'white';
+        context.font = 'bold 14px Arial';
+        context.fillText('TREE DETECTED', 38, 32);
+        // Check icon
+        context.font = 'bold 16px Arial';
+        context.fillText('✓', 18, 33);
+        
+        // Measurement labels (professional pills)
+        this._drawPillLabel(context, 'Height: ' + measurements.height + ' cm', bounds.x + 5, bounds.y - 18, '#27ae60');
+        this._drawPillLabel(context, 'Diameter: ' + measurements.trunkWidth + ' cm  |  Circumference: ' + measurements.circumference + ' cm', 
+            bounds.trunkLeft, bounds.breastHeightY + 28, '#c0392b');
+        this._drawPillLabel(context, 'Confidence: ' + measurements.confidence + '%', 
+            bounds.x + bounds.width - 180, bounds.y - 18, '#2980b9');
         
         if (measurements.species) {
-            this._drawLabel(context, 'Species: ' + measurements.species, 10, canvas.height - 30, '#8e44ad');
-        }
-        
-        if (measurements.validation) {
-            this._drawLabel(context, 'Green: ' + measurements.validation.greenPercent + '% | Brown: ' + measurements.validation.brownPercent + '%',
-                10, canvas.height - 60, 'rgba(39, 174, 96, 0.8)');
+            this._drawPillLabel(context, 'Species: ' + measurements.species, 10, canvas.height - 30, '#8e44ad');
         }
         
         if (measurements.processingTime) {
-            this._drawLabel(context, measurements.processingTime + 'ms', canvas.width - 80, 20, 'rgba(0,0,0,0.6)');
+            this._drawPillLabel(context, measurements.processingTime + 'ms', canvas.width - 75, 20, 'rgba(0,0,0,0.55)');
         }
         
-        // Center marker
+        // Center marker (crosshair style)
+        var cx = bounds.trunkCenterX, cy = bounds.breastHeightY;
+        context.strokeStyle = '#e74c3c';
+        context.lineWidth = 2;
+        context.beginPath();
+        context.arc(cx, cy, 8, 0, 2 * Math.PI);
+        context.stroke();
+        context.beginPath();
+        context.moveTo(cx - 12, cy); context.lineTo(cx + 12, cy);
+        context.moveTo(cx, cy - 12); context.lineTo(cx, cy + 12);
+        context.stroke();
         context.fillStyle = '#e74c3c';
         context.beginPath();
-        context.arc(bounds.trunkCenterX, bounds.breastHeightY, 5, 0, 2 * Math.PI);
+        context.arc(cx, cy, 3, 0, 2 * Math.PI);
         context.fill();
-        context.strokeStyle = 'white';
-        context.lineWidth = 2;
-        context.stroke();
+    }
+
+    _drawPillLabel(context, text, x, y, bgColor) {
+        context.font = 'bold 13px Arial';
+        var metrics = context.measureText(text);
+        var padding = 8;
+        var height = 22;
+        var radius = height / 2;
+        context.fillStyle = bgColor;
+        this._roundRect(context, x - padding, y - height + 4, metrics.width + padding * 2, height, radius);
+        context.fill();
+        context.fillStyle = 'white';
+        context.fillText(text, x, y);
     }
 
     _drawArrowHead(context, x, y, direction, size) {
@@ -867,16 +937,6 @@ class AdvancedTreeML {
         context.fill();
     }
 
-    _drawLabel(context, text, x, y, bgColor) {
-        context.font = 'bold 14px Arial';
-        var metrics = context.measureText(text);
-        var padding = 6;
-        context.fillStyle = bgColor;
-        this._roundRect(context, x - padding, y - 16, metrics.width + padding * 2, 22, 4);
-        context.fill();
-        context.fillStyle = 'white';
-        context.fillText(text, x, y);
-    }
 
     _roundRect(context, x, y, w, h, r) {
         context.beginPath();

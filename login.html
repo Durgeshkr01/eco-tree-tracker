@@ -3,391 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🌳 EcoTree Tracker - Login</title>
+    <title>EcoTree Tracker</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            min-height: 100dvh;
-            overflow-y: auto;
-            overflow-x: hidden;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        /* Animated Background */
-        .leaves-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            z-index: 0;
-            pointer-events: none;
-        }
-
-        .leaf {
-            position: absolute;
-            opacity: 0.4;
-            animation: fall 12s linear infinite;
-            will-change: transform;
-        }
-
-        @keyframes fall {
-            0% {
-                transform: translateY(-100px) rotate(0deg) scale(1);
-                opacity: 0.4;
-            }
-            50% {
-                opacity: 0.6;
-            }
-            100% {
-                transform: translateY(100vh) rotate(360deg) scale(0.5);
-                opacity: 0;
-            }
-        }
-
-        .container {
-            position: relative;
-            z-index: 1;
-            text-align: center;
-            padding: 40px 20px 100px;
-            min-height: 100vh;
-            min-height: 100dvh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-        }
-
-        .logo-section {
-            margin-bottom: 36px;
-            animation: fadeInDown 0.8s ease-out;
-            flex-shrink: 0;
-        }
-
-        .logo-icon {
-            font-size: 72px;
-            margin-bottom: 12px;
-            animation: bounce 3s ease-in-out infinite;
-            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2));
-        }
-
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-8px); }
-        }
-
-        .logo-section h1 {
-            color: white;
-            font-size: 2.4rem;
-            font-weight: 800;
-            margin-bottom: 8px;
-            text-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            letter-spacing: -0.5px;
-        }
-
-        .logo-section p {
-            color: rgba(255,255,255,0.85);
-            font-size: 1rem;
-            font-weight: 400;
-            max-width: 320px;
-            margin: 0 auto;
-            line-height: 1.5;
-        }
-
-        .login-options {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-            align-items: center;
-            width: 100%;
-            max-width: 420px;
-            animation: fadeInUp 1s ease-out;
-        }
-
-        .option-card {
-            background: white;
-            padding: 32px 28px;
-            border-radius: 24px;
-            width: 100%;
-            cursor: pointer;
-            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
-            text-decoration: none;
-            color: inherit;
-            display: block;
-            position: relative;
-            overflow: hidden;
-            border: 3px solid transparent;
-        }
-
-        .option-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            transition: height 0.3s ease;
-        }
-
-        .option-card:active {
-            transform: scale(0.97);
-        }
-
-        .option-card.admin {
-            border-color: rgba(102, 126, 234, 0.15);
-        }
-
-        .option-card.admin::before {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-        }
-
-        .option-card.student {
-            border-color: rgba(245, 87, 108, 0.15);
-        }
-
-        .option-card.student::before {
-            background: linear-gradient(135deg, #f093fb, #f5576c);
-        }
-
-        .option-card:hover::before,
-        .option-card:active::before {
-            height: 6px;
-        }
-
-        .option-icon {
-            width: 72px;
-            height: 72px;
-            border-radius: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 18px;
-            font-size: 32px;
-        }
-
-        .option-card.admin .option-icon {
-            background: linear-gradient(135deg, rgba(102,126,234,0.12), rgba(118,75,162,0.12));
-            color: #667eea;
-        }
-
-        .option-card.student .option-icon {
-            background: linear-gradient(135deg, rgba(240,147,251,0.12), rgba(245,87,108,0.12));
-            color: #f5576c;
-        }
-
-        .option-card h2 {
-            font-size: 1.5rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-            color: #1a1a2e;
-        }
-
-        .option-card p {
-            color: #6b7280;
-            font-size: 0.9rem;
-            line-height: 1.6;
-            margin: 0;
-        }
-
-        .card-arrow {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-top: 16px;
-            color: #9ca3af;
-            font-size: 0.85rem;
-            font-weight: 600;
-            gap: 6px;
-            transition: all 0.3s;
-        }
-
-        .option-card:hover .card-arrow,
-        .option-card:active .card-arrow {
-            gap: 10px;
-        }
-
-        .option-card.admin:hover .card-arrow,
-        .option-card.admin:active .card-arrow {
-            color: #667eea;
-        }
-
-        .option-card.student:hover .card-arrow,
-        .option-card.student:active .card-arrow {
-            color: #f5576c;
-        }
-
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-24px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(24px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .footer-text {
-            position: relative;
-            margin-top: 32px;
-            text-align: center;
-            color: rgba(255,255,255,0.7);
-            font-size: 0.8rem;
-            padding-bottom: 24px;
-        }
-
-        /* Desktop styles */
-        @media (min-width: 769px) {
-            .container {
-                justify-content: center;
-                padding: 40px 20px;
-            }
-
-            .login-options {
-                flex-direction: row;
-                max-width: 700px;
-                gap: 24px;
-            }
-
-            .option-card {
-                width: 50%;
-                padding: 40px 32px;
-            }
-
-            .option-card:hover {
-                transform: translateY(-6px);
-                box-shadow: 0 16px 48px rgba(0,0,0,0.25);
-            }
-
-            .logo-section h1 {
-                font-size: 3rem;
-            }
-
-            .logo-section p {
-                font-size: 1.15rem;
-                max-width: 500px;
-            }
-        }
-
-        /* Small mobile */
-        @media (max-width: 380px) {
-            .logo-section h1 {
-                font-size: 1.9rem;
-            }
-
-            .option-card {
-                padding: 24px 20px;
-            }
-
-            .option-icon {
-                width: 60px;
-                height: 60px;
-                font-size: 28px;
-            }
-
-            .option-card h2 {
-                font-size: 1.3rem;
-            }
-        }
-
-        /* Safe area for notched phones */
-        @supports (padding: env(safe-area-inset-bottom)) {
-            .container {
-                padding-bottom: calc(80px + env(safe-area-inset-bottom));
-            }
-        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter','Segoe UI',sans-serif;min-height:100vh;min-height:100dvh;overflow-x:hidden;background:#0a1628;color:#fff}
+        .bg-mesh{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;background:radial-gradient(ellipse at 20% 50%,rgba(16,185,129,.15) 0%,transparent 50%),radial-gradient(ellipse at 80% 20%,rgba(59,130,246,.12) 0%,transparent 50%),radial-gradient(ellipse at 50% 80%,rgba(168,85,247,.1) 0%,transparent 50%),linear-gradient(180deg,#0a1628 0%,#111d33 50%,#0f172a 100%)}
+        .particles{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none;overflow:hidden}
+        .particle{position:absolute;border-radius:50%;opacity:0;animation:floatUp var(--dur) var(--del) infinite ease-out}
+        @keyframes floatUp{0%{opacity:0;transform:translateY(100vh) scale(0)}20%{opacity:var(--op)}80%{opacity:var(--op)}100%{opacity:0;transform:translateY(-10vh) scale(1)}}
+        .container{position:relative;z-index:1;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 20px}
+        .brand{text-align:center;margin-bottom:48px;animation:fadeDown .8s ease-out}
+        .brand-icon{width:88px;height:88px;margin:0 auto 20px;background:linear-gradient(135deg,#10b981,#059669);border-radius:28px;display:flex;align-items:center;justify-content:center;font-size:42px;color:#fff;box-shadow:0 20px 40px rgba(16,185,129,.25),0 0 0 1px rgba(16,185,129,.1);animation:iconFloat 4s ease-in-out infinite}
+        @keyframes iconFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+        .brand h1{font-size:2.6rem;font-weight:900;letter-spacing:-.5px;background:linear-gradient(135deg,#10b981,#34d399,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px}
+        .brand p{color:rgba(255,255,255,.55);font-size:.95rem;max-width:340px;margin:0 auto;line-height:1.6}
+        .cards{display:flex;flex-direction:column;gap:16px;width:100%;max-width:440px;animation:fadeUp .9s ease-out}
+        .card-link{text-decoration:none;color:inherit;display:block}
+        .role-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:20px;padding:28px 24px;transition:all .35s cubic-bezier(.4,0,.2,1);position:relative;overflow:hidden;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+        .role-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;opacity:0;transition:opacity .35s,height .35s}
+        .role-card:hover,.role-card:active{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.15);transform:translateY(-4px);box-shadow:0 20px 50px rgba(0,0,0,.3)}
+        .role-card:hover::before,.role-card:active::before{opacity:1;height:4px}
+        .role-card.faculty::before{background:linear-gradient(90deg,#6366f1,#8b5cf6)}
+        .role-card.student::before{background:linear-gradient(90deg,#10b981,#34d399)}
+        .card-top{display:flex;align-items:center;gap:16px;margin-bottom:12px}
+        .card-icon{width:52px;height:52px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+        .role-card.faculty .card-icon{background:linear-gradient(135deg,rgba(99,102,241,.15),rgba(139,92,246,.15));color:#a78bfa}
+        .role-card.student .card-icon{background:linear-gradient(135deg,rgba(16,185,129,.15),rgba(52,211,153,.15));color:#34d399}
+        .card-top h2{font-size:1.25rem;font-weight:700;color:rgba(255,255,255,.95)}
+        .card-desc{color:rgba(255,255,255,.45);font-size:.85rem;line-height:1.6;margin-bottom:14px}
+        .card-action{display:flex;align-items:center;gap:8px;font-size:.8rem;font-weight:600;transition:gap .3s}
+        .role-card.faculty .card-action{color:#a78bfa}
+        .role-card.student .card-action{color:#34d399}
+        .role-card:hover .card-action{gap:12px}
+        .footer{margin-top:40px;text-align:center;color:rgba(255,255,255,.3);font-size:.75rem;animation:fadeUp 1.2s ease-out}
+        .footer p{margin:4px 0}
+        @keyframes fadeDown{from{opacity:0;transform:translateY(-24px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+        @media(min-width:769px){.cards{flex-direction:row;max-width:720px;gap:20px}.role-card{width:50%;padding:32px 28px}.brand h1{font-size:3.2rem}.brand p{font-size:1.05rem;max-width:460px}}
+        @media(max-width:380px){.brand h1{font-size:2rem}.role-card{padding:22px 18px}.card-icon{width:44px;height:44px;font-size:18px}}
+        @supports(padding:env(safe-area-inset-bottom)){.container{padding-bottom:calc(40px + env(safe-area-inset-bottom))}}
     </style>
 </head>
 <body>
-    <!-- Animated Background -->
-    <div class="leaves-bg" id="leavesBg"></div>
+    <div class="bg-mesh"></div>
+    <div class="particles" id="particles"></div>
 
     <div class="container">
-        <!-- Logo Section -->
-        <div class="logo-section">
-            <div class="logo-icon">🌳</div>
+        <div class="brand">
+            <div class="brand-icon"><i class="fas fa-tree"></i></div>
             <h1>EcoTree Tracker</h1>
-            <p>Calculate carbon absorption, oxygen production & environmental impact</p>
+            <p>Carbon absorption, oxygen production & environmental impact calculator</p>
         </div>
 
-        <!-- Login Options -->
-        <div class="login-options">
-            <!-- Admin Card -->
-            <a href="admin-login.html" class="option-card admin">
-                <div class="option-icon">
-                    <i class="fas fa-user-shield"></i>
-                </div>
-                <h2>Faculty Login</h2>
-                <p>Access admin panel to manage students, generate access codes, and view all data</p>
-                <div class="card-arrow">
-                    <span>Continue</span> <i class="fas fa-arrow-right"></i>
+        <div class="cards">
+            <a href="admin-login.html" class="card-link">
+                <div class="role-card faculty">
+                    <div class="card-top">
+                        <div class="card-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+                        <h2>Faculty Login</h2>
+                    </div>
+                    <p class="card-desc">Access admin panel to manage students, generate access codes, and view data analytics</p>
+                    <div class="card-action"><span>Continue</span> <i class="fas fa-arrow-right"></i></div>
                 </div>
             </a>
-
-            <!-- Student Card -->
-            <a href="student-login.html" class="option-card student">
-                <div class="option-icon">
-                    <i class="fas fa-user-graduate"></i>
-                </div>
-                <h2>Student Login</h2>
-                <p>Enter your access code to start collecting tree data and environmental calculations</p>
-                <div class="card-arrow">
-                    <span>Continue</span> <i class="fas fa-arrow-right"></i>
+            <a href="student-login.html" class="card-link">
+                <div class="role-card student">
+                    <div class="card-top">
+                        <div class="card-icon"><i class="fas fa-user-graduate"></i></div>
+                        <h2>Student Login</h2>
+                    </div>
+                    <p class="card-desc">Enter your access code to start collecting tree measurement data and calculate impact</p>
+                    <div class="card-action"><span>Continue</span> <i class="fas fa-arrow-right"></i></div>
                 </div>
             </a>
         </div>
 
-        <div class="footer-text">
-            <p>🌍 Making environmental impact visible • Tree by tree</p>
+        <div class="footer">
+            <p>Making environmental impact visible &mdash; tree by tree</p>
+            <p style="margin-top:6px;color:rgba(255,255,255,.2)">EcoTree Tracker v3.0</p>
         </div>
     </div>
 
     <script>
-        // Check if already logged in - redirect to appropriate page
         const studentSession = localStorage.getItem('studentSession');
         const adminSession = localStorage.getItem('adminSession');
-        if (studentSession) {
-            window.location.href = 'index.html';
-        } else if (adminSession) {
-            window.location.href = 'admin.html';
-        }
+        if (studentSession) window.location.href = 'index.html';
+        else if (adminSession) window.location.href = 'admin.html';
 
-        // Create falling leaves animation
-        const leavesBg = document.getElementById('leavesBg');
-        const leafEmojis = ['🍃', '🌿', '🍂', '🌱'];
-        
-        for (let i = 0; i < 15; i++) {
-            const leaf = document.createElement('div');
-            leaf.className = 'leaf';
-            leaf.textContent = leafEmojis[Math.floor(Math.random() * leafEmojis.length)];
-            leaf.style.left = Math.random() * 100 + '%';
-            leaf.style.animationDuration = (Math.random() * 5 + 5) + 's';
-            leaf.style.animationDelay = Math.random() * 5 + 's';
-            leaf.style.fontSize = (Math.random() * 20 + 20) + 'px';
-            leavesBg.appendChild(leaf);
+        const container = document.getElementById('particles');
+        const colors = ['#10b981','#34d399','#60a5fa','#a78bfa','#818cf8'];
+        for (let i = 0; i < 30; i++) {
+            const p = document.createElement('div');
+            p.className = 'particle';
+            const size = Math.random() * 4 + 2;
+            p.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;background:${colors[Math.floor(Math.random()*colors.length)]};--dur:${Math.random()*10+8}s;--del:${Math.random()*8}s;--op:${Math.random()*.4+.1}`;
+            container.appendChild(p);
         }
     </script>
 </body>
