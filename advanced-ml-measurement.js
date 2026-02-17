@@ -5,6 +5,7 @@
 class AdvancedTreeML {
     constructor() {
         this.isModelLoaded = false;
+        this.cocoModel = null;       // COCO-SSD AI object detection model
         this.videoStream = null;
         this.capturedImage = null;
         
@@ -57,13 +58,90 @@ class AdvancedTreeML {
                 await tf.ready();
                 console.log('TF.js backend:', tf.getBackend());
             }
+            
+            // Load COCO-SSD for REAL object detection
+            if (!this.cocoModel && typeof cocoSsd !== 'undefined') {
+                console.log('Loading COCO-SSD object detection model...');
+                this.cocoModel = await cocoSsd.load({ base: 'lite_mobilenet_v2' });
+                console.log('COCO-SSD model loaded — can detect 80+ object types');
+            }
+            
             this.isModelLoaded = true;
-            console.log('Advanced CV pipeline ready');
+            console.log('Advanced CV + AI detection pipeline ready');
             return true;
         } catch (error) {
-            console.warn('TF.js init warning:', error);
+            console.warn('Model init warning:', error);
             this.isModelLoaded = true;
             return true;
+        }
+    }
+
+    // ==================== AI OBJECT DETECTION (COCO-SSD) ====================
+    
+    async detectObjectsAI(canvas) {
+        if (!this.cocoModel) {
+            console.warn('COCO-SSD not loaded, skipping AI detection');
+            return { isTree: true, objects: [] };
+        }
+        
+        try {
+            const predictions = await this.cocoModel.detect(canvas, 10, 0.25);
+            console.log('COCO-SSD detections:', predictions.map(function(p) {
+                return p.class + ' (' + (p.score * 100).toFixed(0) + '%)';
+            }));
+            
+            // Objects that are DEFINITELY NOT trees
+            const nonTreeObjects = [
+                'person', 'laptop', 'cell phone', 'keyboard', 'mouse', 'remote',
+                'tv', 'monitor', 'chair', 'couch', 'bed', 'dining table', 'toilet',
+                'car', 'truck', 'bus', 'motorcycle', 'bicycle', 'airplane', 'train', 'boat',
+                'book', 'bottle', 'cup', 'wine glass', 'fork', 'knife', 'spoon', 'bowl',
+                'backpack', 'handbag', 'suitcase', 'tie', 'umbrella',
+                'microwave', 'oven', 'toaster', 'sink', 'refrigerator',
+                'scissors', 'teddy bear', 'hair drier', 'toothbrush',
+                'clock', 'vase', 'skateboard', 'surfboard', 'tennis racket',
+                'frisbee', 'sports ball', 'baseball bat', 'baseball glove', 'kite',
+                'pizza', 'donut', 'cake', 'sandwich', 'hot dog', 'banana', 'apple', 'orange',
+                'broccoli', 'carrot',
+                'cat', 'dog', 'horse', 'sheep', 'cow', 'elephant', 'bear', 'zebra', 'giraffe',
+                'bird', 'fire hydrant', 'stop sign', 'parking meter', 'bench', 'traffic light'
+            ];
+            
+            // Check each detection
+            var detectedNonTree = [];
+            var hasPlant = false;
+            
+            for (var i = 0; i < predictions.length; i++) {
+                var pred = predictions[i];
+                if (pred.class === 'potted plant') {
+                    hasPlant = true;
+                }
+                if (nonTreeObjects.indexOf(pred.class) !== -1 && pred.score > 0.30) {
+                    detectedNonTree.push({
+                        object: pred.class,
+                        confidence: (pred.score * 100).toFixed(0)
+                    });
+                }
+            }
+            
+            if (detectedNonTree.length > 0) {
+                // Sort by confidence, highest first
+                detectedNonTree.sort(function(a, b) { return b.confidence - a.confidence; });
+                var topDetection = detectedNonTree[0];
+                var allDetected = detectedNonTree.map(function(d) { return d.object; }).join(', ');
+                
+                return {
+                    isTree: false,
+                    objects: detectedNonTree,
+                    errorMessage: 'AI detected: "' + topDetection.object + '" (' + topDetection.confidence + '% confidence). This is not a tree. Please photograph an actual tree.'
+                };
+            }
+            
+            return { isTree: true, hasPlant: hasPlant, objects: predictions };
+            
+        } catch (error) {
+            console.warn('COCO-SSD detection error:', error);
+            return { isTree: true, objects: [] };
         }
     }
 
@@ -936,9 +1014,17 @@ class AdvancedTreeML {
             var context = canvas.getContext('2d');
             var imageData = context.getImageData(0, 0, canvas.width, canvas.height);
             
-            // Step 1: Validate tree presence (strict multi-signal check)
+            // Step 0: AI Object Detection — identify what's in the photo
+            var aiDetection = await this.detectObjectsAI(canvas);
+            console.log('AI Object Detection:', aiDetection);
+            
+            if (!aiDetection.isTree) {
+                throw new Error(aiDetection.errorMessage || 'AI detected a non-tree object. Please photograph an actual tree.');
+            }
+            
+            // Step 1: Color-based tree validation (secondary check)
             var validation = this.validateTreePresence(imageData);
-            console.log('Tree validation:', validation);
+            console.log('Color validation:', validation);
             
             if (!validation.isTree) {
                 throw new Error(validation.errorMessage || 'No tree detected! Please ensure the tree trunk and canopy are clearly visible.');
