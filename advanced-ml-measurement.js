@@ -333,11 +333,11 @@ class AdvancedTreeML {
                 const hsv = this.rgbToHsv(r, g, b);
                 const lab = this.rgbToLab(r, g, b);
                 
+                // Tighter trunk color: real bark, not blankets/fabric/plastic
                 const isTrunk = (
-                    (hsv.h >= 5 && hsv.h <= 50 && hsv.s >= 10 && hsv.s <= 85 && hsv.v >= 10 && hsv.v <= 80 &&
-                     lab.a > -8 && lab.b > 0 && lab.L > 10 && lab.L < 80) ||
-                    (hsv.v >= 5 && hsv.v <= 40 && hsv.s <= 55 && lab.L > 5 && lab.L < 40 && lab.b > -10) ||
-                    (hsv.s < 25 && hsv.v > 25 && hsv.v < 70 && lab.a > -5 && lab.a < 8 && lab.b > -5 && lab.b < 15)
+                    (hsv.h >= 8 && hsv.h <= 42 && hsv.s >= 12 && hsv.s <= 70 && hsv.v >= 12 && hsv.v <= 65 &&
+                     lab.a > -5 && lab.b > 2 && lab.L > 12 && lab.L < 65) ||
+                    (hsv.v >= 8 && hsv.v <= 35 && hsv.s >= 5 && hsv.s <= 40 && lab.L > 8 && lab.L < 35 && lab.b > -5)
                 );
                 
                 if (isTrunk) {
@@ -616,23 +616,26 @@ class AdvancedTreeML {
             skinClusterScore = maxSkinCell / pureSkinPixels;
         }
         
-        // === TREE DETECTION: Multi-signal scoring system ===
-        // Trees MUST have: (green + brown) OR (very high green) OR (high brown + natural texture)
-        // PLUS at least one structural signal: spatial arrangement, texture, or low artificiality
+        // === TREE DETECTION: Strict multi-signal scoring ===
+        // Trees MUST have strong green AND brown, plus structural evidence
         
         const combinedTreeColor = greenPercent + brownPercent;
-        const hasBothColors = greenPercent > 5 && brownPercent > 3 && combinedTreeColor > 10;
-        const hasHighGreen = greenPercent > 20;
-        const hasHighBrownWithTexture = brownPercent > 12 && hasNaturalTexture;
+        // Require significant green foliage AND brown bark together
+        const hasBothColors = greenPercent > 8 && brownPercent > 5 && combinedTreeColor > 18;
+        // Or very dominant green (forest/tree fills frame)
+        const hasHighGreen = greenPercent > 30;
+        // Or high brown with strong texture AND some green present
+        const hasHighBrownWithTexture = brownPercent > 15 && hasNaturalTexture && greenPercent > 3;
         
         const meetsColorCriteria = hasBothColors || hasHighGreen || hasHighBrownWithTexture;
         
-        // Supporting structural signals
-        const hasGoodSpatial = spatialScore > 0.38;
-        const notArtificial = grayPercent < 55;
-        const supportCount = (hasGoodSpatial ? 1 : 0) + (notArtificial ? 1 : 0) + (hasNaturalTexture ? 1 : 0);
+        // Supporting structural signals — REQUIRE at least 2
+        const hasGoodSpatial = spatialScore > 0.45;
+        const notArtificial = grayPercent < 50;
+        const hasStrongTexture = avgTrunkVariance > 35;
+        const supportCount = (hasGoodSpatial ? 1 : 0) + (notArtificial ? 1 : 0) + (hasStrongTexture ? 1 : 0);
         
-        const isTree = meetsColorCriteria && supportCount >= 1;
+        const isTree = meetsColorCriteria && supportCount >= 2;
         
         // Human/vehicle detection
         const hasTreeColors = greenPercent > 5 || brownPercent > 5;
@@ -671,22 +674,77 @@ class AdvancedTreeML {
         var imgW = canvas.width;
         var imgH = canvas.height;
         
-        // Check 1: Trunk width must not be too wide (tree trunks are narrow relative to image)
+        // Check 1: Trunk must be NARROW — real tree trunks are thin relative to image
         var trunkWidthRatio = bounds.trunkWidthPx / imgW;
-        if (trunkWidthRatio > 0.55) {
-            return { valid: false, reason: 'Detected object is too wide to be a tree trunk. Please center on a tree and stand 2-3m away.' };
+        console.log('Structure check: trunkWidthRatio=' + trunkWidthRatio.toFixed(3));
+        if (trunkWidthRatio > 0.30) {
+            return { valid: false, reason: 'Detected object is too wide to be a tree trunk (' + (trunkWidthRatio * 100).toFixed(0) + '% of frame). Stand 2-3m from tree.' };
         }
         
-        // Check 2: Detection bounding box should be taller than wide (trees are vertical)
+        // Check 2: Trunk must be narrow compared to overall bounding box
+        var trunkToBboxRatio = bounds.trunkWidthPx / Math.max(1, bounds.width);
+        console.log('Structure check: trunkToBboxRatio=' + trunkToBboxRatio.toFixed(3));
+        if (trunkToBboxRatio > 0.60) {
+            return { valid: false, reason: 'No distinct narrow trunk detected. Tree trunks should be narrower than the canopy.' };
+        }
+        
+        // Check 3: Bounding box should be taller than wide (trees are vertical)
         var aspectRatio = bounds.height / Math.max(1, bounds.width);
-        if (aspectRatio < 0.4) {
-            return { valid: false, reason: 'Detected object is too horizontal to be a tree. Stand back so the full tree trunk is visible.' };
+        console.log('Structure check: aspectRatio=' + aspectRatio.toFixed(3));
+        if (aspectRatio < 0.6) {
+            return { valid: false, reason: 'Detected object appears horizontal, not vertical like a tree. Ensure full trunk is visible.' };
         }
         
-        // Check 3: Verify green/foliage presence in the upper portion of the detected area
+        // Check 4: Verify vertical continuity — trunk pixels must form a continuous vertical column
         var context = canvas.getContext('2d');
+        var trunkX = bounds.trunkCenterX || Math.floor((bounds.trunkLeft + bounds.trunkRight) / 2);
+        var trunkHalfW = Math.max(5, Math.floor(bounds.trunkWidthPx / 2));
+        var startY = Math.floor(imgH * 0.3);
+        var endY = Math.floor(imgH * 0.85);
+        var trunkRegionH = endY - startY;
+        
+        if (trunkRegionH > 20 && trunkX > trunkHalfW && trunkX < imgW - trunkHalfW) {
+            var trunkCol = context.getImageData(trunkX - trunkHalfW, startY, trunkHalfW * 2, trunkRegionH);
+            var colW = trunkHalfW * 2;
+            var verticalBrownRuns = 0;
+            var maxConsecutive = 0;
+            var currentConsecutive = 0;
+            var rowStep = 3;
+            
+            for (var vy = 0; vy < trunkRegionH; vy += rowStep) {
+                var rowBrown = 0;
+                var rowTotal = 0;
+                for (var vx = 0; vx < colW; vx += 2) {
+                    var pi = (vy * colW + vx) * 4;
+                    var r = trunkCol.data[pi], g = trunkCol.data[pi + 1], b = trunkCol.data[pi + 2];
+                    var hsv = this.rgbToHsv(r, g, b);
+                    if (hsv.h >= 8 && hsv.h <= 50 && hsv.s >= 10 && hsv.s <= 80 && hsv.v >= 10 && hsv.v <= 75) {
+                        rowBrown++;
+                    }
+                    rowTotal++;
+                }
+                
+                if (rowTotal > 0 && (rowBrown / rowTotal) > 0.3) {
+                    currentConsecutive++;
+                    maxConsecutive = Math.max(maxConsecutive, currentConsecutive);
+                } else {
+                    currentConsecutive = 0;
+                }
+            }
+            
+            var totalRows = Math.floor(trunkRegionH / rowStep);
+            var continuityRatio = totalRows > 0 ? maxConsecutive / totalRows : 0;
+            console.log('Structure check: vertical continuity=' + continuityRatio.toFixed(3) + ' (maxRun=' + maxConsecutive + '/' + totalRows + ')');
+            
+            // Real tree trunk: continuous vertical brown band for at least 40% of scan height
+            if (continuityRatio < 0.35) {
+                return { valid: false, reason: 'No continuous vertical trunk structure found. Ensure tree trunk is clearly visible from 2-3m.' };
+            }
+        }
+        
+        // Check 5: Verify green canopy ABOVE the trunk region
         var upperY = Math.max(0, bounds.y);
-        var upperH = Math.min(Math.floor(bounds.height * 0.4), imgH - upperY);
+        var upperH = Math.min(Math.floor(bounds.height * 0.35), imgH - upperY);
         var upperX = Math.max(0, bounds.x);
         var upperW = Math.min(bounds.width, imgW - upperX);
         
@@ -705,17 +763,19 @@ class AdvancedTreeML {
             }
             
             var greenInUpperPercent = totalSampled > 0 ? (greenCount / totalSampled) * 100 : 0;
+            console.log('Structure check: greenInUpper=' + greenInUpperPercent.toFixed(1) + '%');
             
-            // Must have some green above, UNLESS trunk is narrow (bare/winter tree)
-            if (greenInUpperPercent < 3 && trunkWidthRatio > 0.25) {
-                return { valid: false, reason: 'No foliage detected above the detected trunk. Ensure tree canopy (leaves) is visible in frame.' };
+            // Must have meaningful green above (canopy)
+            if (greenInUpperPercent < 5) {
+                return { valid: false, reason: 'No green canopy detected above trunk. Ensure tree with leaves is visible in frame.' };
             }
         }
         
-        // Check 4: Tree should not fill entire image width (that's not a trunk)
+        // Check 6: Bounding box should not cover entire image
         var boundWidthRatio = bounds.width / imgW;
-        if (boundWidthRatio > 0.9 && aspectRatio < 0.8) {
-            return { valid: false, reason: 'Image does not appear to contain a tree. The detected area fills the entire frame width.' };
+        var boundHeightRatio = bounds.height / imgH;
+        if (boundWidthRatio > 0.85 && boundHeightRatio > 0.85) {
+            return { valid: false, reason: 'Detection covers the entire image. Stand further from the tree (2-3m recommended).' };
         }
         
         return { valid: true, reason: null };
