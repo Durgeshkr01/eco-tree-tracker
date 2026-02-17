@@ -53,11 +53,11 @@
                     <h1>🌳 EcoTree Tracker</h1>
                     <p>Calculate carbon absorption, oxygen production & environmental impact</p>
                 </div>
-                <div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 15px;">
-                    <button onclick="logout()" class="map-nav-btn" style="background: #e74c3c;">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 10px;">
+                    <button onclick="logout()" class="map-nav-btn" style="background: #e74c3c; padding: 8px 16px; font-size: 0.85rem; border-radius: 10px;">
                         <i class="fas fa-sign-out-alt"></i> Logout
                     </button>
-                    <button id="installBtn" class="install-btn" style="display: none; position: relative; right: auto;">
+                    <button id="installBtn" class="install-btn" style="display: none; position: relative; right: auto; padding: 8px 16px; font-size: 0.85rem; border-radius: 10px;">
                         <i class="fas fa-download"></i> Install App
                     </button>
                 </div>
@@ -88,12 +88,12 @@
                     <label for="circumference">
                         <i class="fas fa-circle-notch"></i> Tree Circumference (at Breast Height)
                     </label>
-                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                        <button type="button" id="openCameraBtn" class="btn-secondary" style="flex: 1;">
-                            <i class="fas fa-camera"></i> Measure with Camera
+                    <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+                        <button type="button" id="openCameraBtn" class="btn-secondary" style="flex: 1; padding: 10px 12px; font-size: 0.85rem;">
+                            <i class="fas fa-camera"></i> Camera
                         </button>
-                        <button type="button" id="manualInputBtn" class="btn-secondary" style="flex: 1; background: #95a5a6;">
-                            <i class="fas fa-keyboard"></i> Manual Input
+                        <button type="button" id="manualInputBtn" class="btn-secondary" style="flex: 1; padding: 10px 12px; font-size: 0.85rem; background: #95a5a6;">
+                            <i class="fas fa-keyboard"></i> Manual
                         </button>
                     </div>
                     <div class="input-with-unit" id="manualInputContainer">
@@ -204,14 +204,14 @@
                     <label>
                         <i class="fas fa-map-marker-alt"></i> GPS Location
                     </label>
-                    <div style="display: flex; gap: 10px; margin-bottom: 10px;">
-                        <button type="button" id="getLocationBtn" class="btn-secondary" style="flex: 1;">
-                            <i class="fas fa-crosshairs"></i> Get Current Location
+                    <div style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
+                        <button type="button" id="getLocationBtn" class="btn-secondary" style="flex: 1; padding: 10px 14px; font-size: 0.85rem; min-width: 140px;">
+                            <i class="fas fa-crosshairs"></i> Get Location
                         </button>
-                        <button type="button" id="lockLocationBtn" class="btn-secondary" style="flex: 1; background: #27ae60; display: none;">
-                            <i class="fas fa-lock"></i> Location Locked
+                        <button type="button" id="lockLocationBtn" class="btn-secondary" style="flex: 1; padding: 10px 14px; font-size: 0.85rem; background: #27ae60; display: none;">
+                            <i class="fas fa-lock"></i> Locked
                         </button>
-                        <button type="button" id="unlockLocationBtn" class="btn-secondary" style="background: #e74c3c; display: none;">
+                        <button type="button" id="unlockLocationBtn" class="btn-secondary" style="padding: 10px 14px; font-size: 0.85rem; background: #e74c3c; display: none;">
                             <i class="fas fa-unlock"></i> Unlock
                         </button>
                     </div>
