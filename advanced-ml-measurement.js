@@ -243,18 +243,18 @@ class AdvancedTreeML {
                     }
                 }
                 
-                // Dark bark
-                if (hsv.v >= 8 && hsv.v <= 45 && hsv.s <= 50) {
-                    if (lab.a > -10 && lab.b > -5 && lab.L > 8 && lab.L < 45) {
-                        treeProb = Math.max(treeProb, 0.7);
+                // Dark bark - TIGHTER: require warm undertone typical of real bark
+                if (hsv.v >= 8 && hsv.v <= 45 && hsv.s >= 5 && hsv.s <= 40) {
+                    if (lab.a > -8 && lab.b > 0 && lab.L > 8 && lab.L < 45) {
+                        treeProb = Math.max(treeProb, 0.6);
                         trunkPixels++;
                     }
                 }
                 
-                // Light bark
-                if (hsv.s < 20 && hsv.v > 60 && hsv.v < 90) {
-                    if (lab.b > 2 && lab.b < 20 && lab.a > -5 && lab.a < 10) {
-                        treeProb = Math.max(treeProb, 0.5);
+                // Light bark - TIGHTER: require warm tone, not just any gray
+                if (hsv.s >= 5 && hsv.s < 25 && hsv.v > 55 && hsv.v < 85) {
+                    if (lab.b > 3 && lab.b < 25 && lab.a > -3 && lab.a < 12) {
+                        treeProb = Math.max(treeProb, 0.4);
                     }
                 }
                 
@@ -518,6 +518,14 @@ class AdvancedTreeML {
         const step = width > 1000 ? 2 : 1;
         let sampledPixels = 0;
         
+        // Spatial tracking: top half vs bottom half
+        const midY = Math.floor(height / 2);
+        let greenTop = 0, greenBottom = 0;
+        let brownTop = 0, brownBottom = 0;
+        
+        // Texture variance tracking for brown/bark regions
+        let trunkVarianceSum = 0, trunkVarianceCount = 0;
+        
         // Skin region spatial tracking (grid-based clustering)
         const gridCols = 8, gridRows = 8;
         const skinGrid = new Float32Array(gridCols * gridRows);
@@ -531,23 +539,46 @@ class AdvancedTreeML {
                 const hsv = this.rgbToHsv(r, g, b);
                 sampledPixels++;
                 
+                const isTop = y < midY;
+                
                 // Green foliage
                 const isGreen = hsv.h >= 40 && hsv.h <= 170 && hsv.s > 15 && hsv.v > 15;
-                if (isGreen) greenPixels++;
+                if (isGreen) {
+                    greenPixels++;
+                    if (isTop) greenTop++; else greenBottom++;
+                }
                 
-                // Brown bark/trunk
-                const isBrown = hsv.h >= 10 && hsv.h <= 50 && hsv.s >= 12 && hsv.s <= 85 && hsv.v >= 10 && hsv.v <= 80;
-                if (isBrown) brownPixels++;
+                // Brown bark/trunk - TIGHTER ranges than before
+                const isBrown = hsv.h >= 10 && hsv.h <= 45 && hsv.s >= 15 && hsv.s <= 75 && hsv.v >= 12 && hsv.v <= 70;
+                if (isBrown) {
+                    brownPixels++;
+                    if (isTop) brownTop++; else brownBottom++;
+                    
+                    // Texture variance sampling (every 8th brown pixel for performance)
+                    if (x % 8 === 0 && y % 8 === 0 && x > 2 && x < width - 2 && y > 2 && y < height - 2) {
+                        let localSum = 0, localSqSum = 0, localN = 0;
+                        for (let dy = -2; dy <= 2; dy++) {
+                            for (let dx = -2; dx <= 2; dx++) {
+                                const ni = ((y + dy) * width + (x + dx)) * 4;
+                                const gray = (pixels[ni] + pixels[ni + 1] + pixels[ni + 2]) / 3;
+                                localSum += gray;
+                                localSqSum += gray * gray;
+                                localN++;
+                            }
+                        }
+                        const mean = localSum / localN;
+                        const variance = (localSqSum / localN) - (mean * mean);
+                        trunkVarianceSum += variance;
+                        trunkVarianceCount++;
+                    }
+                }
                 
                 // Skin detection - STRICT: only count if NOT also brown/bark
-                // Narrow hue range for actual skin, require higher saturation
                 const isSkinHue = hsv.h >= 8 && hsv.h <= 28 && hsv.s >= 30 && hsv.s <= 65 && hsv.v >= 55 && hsv.v <= 90;
-                // Additional check: real skin has specific R>G>B pattern
                 const hasSkinRGB = r > 120 && g > 80 && b > 50 && r > g && g > b && (r - b) > 30;
                 
                 if (isSkinHue && hasSkinRGB && !isBrown) {
                     pureSkinPixels++;
-                    // Track grid cell for spatial clustering
                     const gx = Math.min(gridCols - 1, Math.floor(x / gridW));
                     const gy = Math.min(gridRows - 1, Math.floor(y / gridH));
                     skinGrid[gy * gridCols + gx]++;
@@ -563,20 +594,55 @@ class AdvancedTreeML {
         const skinPercent = (pureSkinPixels / sampledPixels) * 100;
         const grayPercent = (grayPixels / sampledPixels) * 100;
         
-        // Check skin clustering - real human has concentrated skin in few grid cells
+        // Spatial arrangement score: green in top, brown in bottom (tree-like)
+        let spatialScore = 0;
+        if (greenPixels > 0 && brownPixels > 0) {
+            const greenTopRatio = greenTop / greenPixels;
+            const brownBottomRatio = brownBottom / brownPixels;
+            spatialScore = (greenTopRatio + brownBottomRatio) / 2;
+        } else if (greenPixels > 0) {
+            spatialScore = (greenTop / greenPixels) * 0.5;
+        }
+        
+        // Texture score: bark has high variance (~50+), flat surfaces (laptop, wall) have low (<20)
+        const avgTrunkVariance = trunkVarianceCount > 0 ? trunkVarianceSum / trunkVarianceCount : 0;
+        const hasNaturalTexture = avgTrunkVariance > 25;
+        
+        // Skin clustering
         let skinClusterScore = 0;
         const maxSkinCell = Math.max.apply(null, Array.from(skinGrid));
         const totalSkinCells = Array.from(skinGrid).filter(function(v) { return v > 0; }).length;
         if (pureSkinPixels > 0 && totalSkinCells > 0) {
-            skinClusterScore = maxSkinCell / pureSkinPixels; // High = concentrated = likely human
+            skinClusterScore = maxSkinCell / pureSkinPixels;
         }
         
-        // Tree detection: relaxed - accept if ANY tree colors present
-        const hasTreeColors = (greenPercent > 3) || (brownPercent > 2);
-        // Human detection: very strict - need high skin %, clustered, AND low tree colors
+        // === TREE DETECTION: Multi-signal scoring system ===
+        // Trees MUST have: (green + brown) OR (very high green) OR (high brown + natural texture)
+        // PLUS at least one structural signal: spatial arrangement, texture, or low artificiality
+        
+        const combinedTreeColor = greenPercent + brownPercent;
+        const hasBothColors = greenPercent > 5 && brownPercent > 3 && combinedTreeColor > 10;
+        const hasHighGreen = greenPercent > 20;
+        const hasHighBrownWithTexture = brownPercent > 12 && hasNaturalTexture;
+        
+        const meetsColorCriteria = hasBothColors || hasHighGreen || hasHighBrownWithTexture;
+        
+        // Supporting structural signals
+        const hasGoodSpatial = spatialScore > 0.38;
+        const notArtificial = grayPercent < 55;
+        const supportCount = (hasGoodSpatial ? 1 : 0) + (notArtificial ? 1 : 0) + (hasNaturalTexture ? 1 : 0);
+        
+        const isTree = meetsColorCriteria && supportCount >= 1;
+        
+        // Human/vehicle detection
+        const hasTreeColors = greenPercent > 5 || brownPercent > 5;
         const hasPerson = skinPercent > 30 && skinClusterScore > 0.15 && !hasTreeColors;
-        const hasVehicleOrBuilding = grayPercent > 60 && !hasTreeColors;
-        const isTree = hasTreeColors;
+        const hasVehicleOrBuilding = grayPercent > 55 && !meetsColorCriteria;
+        
+        console.log('Tree validation: green=' + greenPercent.toFixed(1) + '%, brown=' + brownPercent.toFixed(1) + 
+            '%, gray=' + grayPercent.toFixed(1) + '%, spatial=' + spatialScore.toFixed(2) + 
+            ', texture=' + avgTrunkVariance.toFixed(0) + ', colorOK=' + meetsColorCriteria + 
+            ', support=' + supportCount + ', isTree=' + isTree);
         
         return {
             isTree: isTree,
@@ -584,15 +650,75 @@ class AdvancedTreeML {
             brownPercent: brownPercent.toFixed(1),
             skinPercent: skinPercent.toFixed(1),
             grayPercent: grayPercent.toFixed(1),
-            errorMessage: this._getValidationError(hasTreeColors, hasPerson, hasVehicleOrBuilding)
+            spatialScore: spatialScore.toFixed(2),
+            textureScore: avgTrunkVariance.toFixed(0),
+            errorMessage: this._getTreeValidationError(isTree, meetsColorCriteria, hasPerson, hasVehicleOrBuilding, supportCount)
         };
     }
 
-    _getValidationError(hasTreeColors, hasPerson, hasVehicleOrBuilding) {
-        if (!hasTreeColors && hasPerson) return 'No tree detected - image appears to be of a person. Please photograph a tree.';
-        if (!hasTreeColors && hasVehicleOrBuilding) return 'No tree detected - image appears to be a building/vehicle. Focus on a tree.';
-        if (!hasTreeColors) return 'No tree detected. Ensure green leaves or brown trunk is visible in the photo.';
-        return null;
+    _getTreeValidationError(isTree, meetsColorCriteria, hasPerson, hasVehicleOrBuilding, supportCount) {
+        if (isTree) return null;
+        if (hasPerson) return 'No tree detected — image appears to contain a person. Please photograph a tree trunk with visible canopy.';
+        if (hasVehicleOrBuilding) return 'No tree detected — image appears to be an artificial object (building, vehicle, device). Please point camera at a tree.';
+        if (!meetsColorCriteria) return 'No tree detected — insufficient green foliage and brown bark visible. Ensure the tree (trunk + leaves) fills the frame.';
+        if (supportCount < 1) return 'Object detected but does not appear to be a tree. Ensure natural bark texture is visible and tree is centered.';
+        return 'No tree detected. Stand 2-3m from a tree, include trunk and canopy in frame.';
+    }
+
+    // ==================== STRUCTURAL VALIDATION (Post-Detection) ====================
+    
+    validateTreeStructure(canvas, bounds) {
+        var imgW = canvas.width;
+        var imgH = canvas.height;
+        
+        // Check 1: Trunk width must not be too wide (tree trunks are narrow relative to image)
+        var trunkWidthRatio = bounds.trunkWidthPx / imgW;
+        if (trunkWidthRatio > 0.55) {
+            return { valid: false, reason: 'Detected object is too wide to be a tree trunk. Please center on a tree and stand 2-3m away.' };
+        }
+        
+        // Check 2: Detection bounding box should be taller than wide (trees are vertical)
+        var aspectRatio = bounds.height / Math.max(1, bounds.width);
+        if (aspectRatio < 0.4) {
+            return { valid: false, reason: 'Detected object is too horizontal to be a tree. Stand back so the full tree trunk is visible.' };
+        }
+        
+        // Check 3: Verify green/foliage presence in the upper portion of the detected area
+        var context = canvas.getContext('2d');
+        var upperY = Math.max(0, bounds.y);
+        var upperH = Math.min(Math.floor(bounds.height * 0.4), imgH - upperY);
+        var upperX = Math.max(0, bounds.x);
+        var upperW = Math.min(bounds.width, imgW - upperX);
+        
+        if (upperW > 0 && upperH > 0) {
+            var upperRegion = context.getImageData(upperX, upperY, upperW, upperH);
+            var greenCount = 0;
+            var totalSampled = 0;
+            var step = 3;
+            for (var p = 0; p < upperRegion.data.length; p += 4 * step) {
+                var r = upperRegion.data[p], g = upperRegion.data[p + 1], b = upperRegion.data[p + 2];
+                var hsv = this.rgbToHsv(r, g, b);
+                if (hsv.h >= 40 && hsv.h <= 170 && hsv.s > 15 && hsv.v > 15) {
+                    greenCount++;
+                }
+                totalSampled++;
+            }
+            
+            var greenInUpperPercent = totalSampled > 0 ? (greenCount / totalSampled) * 100 : 0;
+            
+            // Must have some green above, UNLESS trunk is narrow (bare/winter tree)
+            if (greenInUpperPercent < 3 && trunkWidthRatio > 0.25) {
+                return { valid: false, reason: 'No foliage detected above the detected trunk. Ensure tree canopy (leaves) is visible in frame.' };
+            }
+        }
+        
+        // Check 4: Tree should not fill entire image width (that's not a trunk)
+        var boundWidthRatio = bounds.width / imgW;
+        if (boundWidthRatio > 0.9 && aspectRatio < 0.8) {
+            return { valid: false, reason: 'Image does not appear to contain a tree. The detected area fills the entire frame width.' };
+        }
+        
+        return { valid: true, reason: null };
     }
 
     // ==================== REAL-WORLD SIZE ESTIMATION ====================
@@ -634,14 +760,25 @@ class AdvancedTreeML {
             }
         }
         
-        // FUSION: Weighted average
+        // FUSION: Weighted average with outlier detection
         var methodWeights = [];
-        var m1Weight = (estimatedDistanceCm > 80 && estimatedDistanceCm < 1500) ? 0.50 : 0.25;
+        var m1Weight = (estimatedDistanceCm > 80 && estimatedDistanceCm < 1500) ? 0.35 : 0.20;
         methodWeights.push({ value: trunkDiameterCm_method1, weight: m1Weight, name: 'camera_geometry' });
-        methodWeights.push({ value: trunkDiameterCm_method2, weight: 0.30, name: 'proportional' });
+        methodWeights.push({ value: trunkDiameterCm_method2, weight: 0.25, name: 'proportional' });
         
         if (trunkDiameterCm_method3 !== null) {
-            methodWeights.push({ value: trunkDiameterCm_method3, weight: 0.25, name: 'species_calibration' });
+            // Species calibration is the most reliable anchor — give it highest weight
+            methodWeights.push({ value: trunkDiameterCm_method3, weight: 0.45, name: 'species_calibration' });
+        }
+        
+        // Outlier detection: if a method deviates >3x from median, reduce its weight
+        var methodValues = methodWeights.map(function(m) { return m.value; }).sort(function(a, b) { return a - b; });
+        var medianValue = methodValues[Math.floor(methodValues.length / 2)];
+        for (var mi = 0; mi < methodWeights.length; mi++) {
+            var ratio = methodWeights[mi].value / Math.max(0.1, medianValue);
+            if (ratio > 3 || ratio < 0.33) {
+                methodWeights[mi].weight *= 0.2; // Heavily downweight outliers
+            }
         }
         
         var totalWeight = methodWeights.reduce(function(sum, m) { return sum + m.weight; }, 0);
@@ -739,19 +876,12 @@ class AdvancedTreeML {
             var context = canvas.getContext('2d');
             var imageData = context.getImageData(0, 0, canvas.width, canvas.height);
             
-            // Step 1: Validate tree presence (lenient - allow if any tree colors found)
+            // Step 1: Validate tree presence (strict multi-signal check)
             var validation = this.validateTreePresence(imageData);
             console.log('Tree validation:', validation);
             
             if (!validation.isTree) {
-                console.warn('Tree validation warning:', validation.errorMessage);
-                // Only block if absolutely no tree colors detected
-                if (parseFloat(validation.greenPercent) < 1 && parseFloat(validation.brownPercent) < 1) {
-                    throw new Error(validation.errorMessage || 'No tree detected! Please ensure the tree is visible in the photo.');
-                }
-                // Otherwise continue with warning
-                validation.isTree = true;
-                validation.errorMessage = null;
+                throw new Error(validation.errorMessage || 'No tree detected! Please ensure the tree trunk and canopy are clearly visible.');
             }
             
             // Step 2: Gaussian blur for noise reduction
@@ -771,6 +901,12 @@ class AdvancedTreeML {
             
             if (bounds.trunkWidthPx < 5) {
                 throw new Error('Trunk not clearly detected. Ensure good lighting on trunk and stand 2-3m away.');
+            }
+            
+            // Step 4b: Structural validation - reject non-tree shapes
+            var structureCheck = this.validateTreeStructure(canvas, bounds);
+            if (!structureCheck.valid) {
+                throw new Error(structureCheck.reason);
             }
             
             // Step 5: Get selected species for calibration

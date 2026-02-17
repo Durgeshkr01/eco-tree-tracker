@@ -157,7 +157,7 @@ function initializeCameraHandlers() {
                     if (!extraInfo) {
                         extraInfo = document.createElement('div');
                         extraInfo.className = 'extra-measurement-info';
-                        extraInfo.style.cssText = 'margin-top: 10px; padding: 12px; background: linear-gradient(135deg, #f0f8f0, #e8f5e9); border-radius: 10px; font-size: 13px; color: #555; border: 1px solid #c8e6c9;';
+                        extraInfo.style.cssText = 'margin-top: 10px; padding: 12px; background: rgba(16,185,129,0.08); border-radius: 10px; font-size: 13px; color: #94a3b8; border: 1px solid rgba(16,185,129,0.2);';
                         resultsDiv.appendChild(extraInfo);
                     }
                     
@@ -183,7 +183,7 @@ function initializeCameraHandlers() {
                     // Show error inline instead of alert
                     const errorMsg = document.createElement('div');
                     errorMsg.id = 'captureError';
-                    errorMsg.style.cssText = 'text-align: center; padding: 16px; color: #e74c3c; background: #fdf0f0; border-radius: 10px; margin: 10px 0; border: 1px solid #f5c6cb;';
+                    errorMsg.style.cssText = 'text-align: center; padding: 16px; color: #f87171; background: rgba(239,68,68,0.1); border-radius: 10px; margin: 10px 0; border: 1px solid rgba(239,68,68,0.3);';
                     errorMsg.innerHTML = `
                         <i class="fas fa-exclamation-circle" style="font-size: 24px; margin-bottom: 8px; display: block;"></i>
                         <b>Detection Issue:</b> ${error.message}<br>
