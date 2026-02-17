@@ -2,25 +2,134 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>🎓 Student Login - EcoTree Tracker</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .back-btn { position: fixed; top: 20px; left: 20px; color: white; text-decoration: none; padding: 10px 20px; border-radius: 10px; background: rgba(255,255,255,0.2); font-weight: 600; transition: all 0.3s; }
-        .back-btn:hover { background: rgba(255,255,255,0.3); }
-        .login-card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 400px; width: 90%; text-align: center; }
-        .login-card h1 { color: #f5576c; margin-bottom: 10px; }
-        .login-card p { color: #666; margin-bottom: 30px; }
-        .form-group { margin-bottom: 20px; text-align: left; }
-        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #333; }
-        .form-group input { width: 100%; padding: 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 18px; text-align: center; }
-        .form-group input:focus { outline: none; border-color: #f5576c; }
-        .form-group input.code-input { text-transform: uppercase; letter-spacing: 3px; font-weight: bold; }
-        .btn-login { width: 100%; padding: 15px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; }
-        .btn-login:hover { transform: translateY(-2px); box-shadow: 0 5px 20px rgba(245,87,108,0.4); }
-        .error-msg { color: #e74c3c; margin-top: 15px; display: none; }
-        .logo-icon { font-size: 60px; margin-bottom: 20px; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            padding: 20px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .back-btn { 
+            position: fixed; 
+            top: 16px; 
+            left: 16px; 
+            color: white; 
+            text-decoration: none; 
+            padding: 10px 18px; 
+            border-radius: 12px; 
+            background: rgba(255,255,255,0.18);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            font-weight: 600; 
+            font-size: 0.9rem;
+            transition: all 0.3s; 
+            z-index: 10;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .back-btn:hover, .back-btn:active { background: rgba(255,255,255,0.3); }
+        .login-card { 
+            background: white; 
+            padding: 36px 28px; 
+            border-radius: 24px; 
+            box-shadow: 0 16px 48px rgba(0,0,0,0.2); 
+            max-width: 420px; 
+            width: 100%; 
+            text-align: center;
+            animation: slideUp 0.6s ease-out;
+        }
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .logo-icon { 
+            width: 80px; 
+            height: 80px; 
+            border-radius: 22px;
+            background: linear-gradient(135deg, rgba(240,147,251,0.12), rgba(245,87,108,0.12));
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            margin: 0 auto 20px; 
+            font-size: 40px;
+        }
+        .login-card h1 { color: #1a1a2e; font-size: 1.6rem; font-weight: 700; margin-bottom: 6px; }
+        .login-card > p { color: #6b7280; margin-bottom: 28px; font-size: 0.9rem; line-height: 1.5; }
+        .form-group { margin-bottom: 18px; text-align: left; }
+        .form-group label { 
+            display: block; 
+            margin-bottom: 6px; 
+            font-weight: 600; 
+            color: #374151; 
+            font-size: 0.9rem;
+        }
+        .form-group input { 
+            width: 100%; 
+            padding: 14px 16px; 
+            border: 2px solid #e5e7eb; 
+            border-radius: 14px; 
+            font-size: 16px; 
+            font-family: inherit;
+            transition: all 0.3s;
+            background: #f9fafb;
+        }
+        .form-group input:focus { 
+            outline: none; 
+            border-color: #f5576c; 
+            background: white;
+            box-shadow: 0 0 0 4px rgba(245,87,108,0.1);
+        }
+        .form-group input.code-input { 
+            text-transform: uppercase; 
+            letter-spacing: 4px; 
+            font-weight: 700; 
+            text-align: center;
+            font-size: 20px;
+            padding: 16px;
+        }
+        .btn-login { 
+            width: 100%; 
+            padding: 16px; 
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); 
+            color: white; 
+            border: none; 
+            border-radius: 14px; 
+            font-size: 16px; 
+            font-weight: 700; 
+            cursor: pointer; 
+            transition: all 0.3s;
+            font-family: inherit;
+            margin-top: 6px;
+        }
+        .btn-login:hover, .btn-login:active { 
+            transform: translateY(-2px); 
+            box-shadow: 0 8px 24px rgba(245,87,108,0.35); 
+        }
+        .error-msg { 
+            color: #ef4444; 
+            margin-top: 16px; 
+            display: none; 
+            font-size: 0.9rem;
+            padding: 10px 14px;
+            background: #fef2f2;
+            border-radius: 10px;
+            border: 1px solid #fecaca;
+        }
+
+        @media (max-width: 380px) {
+            .login-card { padding: 28px 20px; }
+            .login-card h1 { font-size: 1.4rem; }
+        }
     </style>
 </head>
 <body>
@@ -70,7 +179,7 @@
                 const passDoc = await getDoc(doc(db, 'passes', accessCode));
                 if (passDoc.exists() && passDoc.data().active) {
                     const passData = passDoc.data();
-                    sessionStorage.setItem('studentSession', JSON.stringify({
+                    localStorage.setItem('studentSession', JSON.stringify({
                         studentId: studentName,
                         accessCode: accessCode,
                         adminUsername: passData.adminUsername,

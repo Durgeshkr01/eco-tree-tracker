@@ -11,7 +11,7 @@ let allSubmissions = []; // Store all submissions globally for heat map
 
 // Load admin from session
 function loadAdminFromSession() {
-    const adminSession = sessionStorage.getItem('adminSession');
+    const adminSession = localStorage.getItem('adminSession');
     if (!adminSession) {
         window.location.href = 'admin-login.html';
         return null;

@@ -11,7 +11,7 @@
     <!-- Login Check -->
     <script>
         // Check if admin is logged in
-        const adminSession = sessionStorage.getItem('adminSession');
+        const adminSession = localStorage.getItem('adminSession');
         if (!adminSession) {
             window.location.href = 'admin-login.html';
         }
@@ -496,7 +496,7 @@
         // Logout function
         window.logout = () => {
             if (confirm('Are you sure you want to logout?')) {
-                sessionStorage.removeItem('adminSession');
+                localStorage.removeItem('adminSession');
                 window.location.href = 'login.html';
             }
         };

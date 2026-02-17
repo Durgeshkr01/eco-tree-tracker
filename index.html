@@ -24,8 +24,8 @@
     <!-- Login Check -->
     <script>
         // Check if user is logged in
-        const studentSession = sessionStorage.getItem('studentSession');
-        const adminSession = sessionStorage.getItem('adminSession');
+        const studentSession = localStorage.getItem('studentSession');
+        const adminSession = localStorage.getItem('adminSession');
         
         if (!studentSession && !adminSession) {
             // Not logged in - redirect to login page
@@ -614,7 +614,7 @@
                 <h3>🎓 Project Guide</h3>
                 <div class="guide-card">
                     <div class="guide-photo">
-                        <img src="team/abha-manohar.jpg" alt="Dr. Abha Manohar">
+                        <img src="faculty/WhatsApp Image 2026-02-17 at 12.14.39 PM.jpeg" alt="Dr. Abha Manohar">
                     </div>
                     <div class="guide-info">
                         <h4>Dr. Abha Manohar</h4>

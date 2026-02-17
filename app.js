@@ -5,8 +5,8 @@ let selectedTreeIndex = null;
 // Logout function
 window.logout = () => {
     if (confirm('Are you sure you want to logout?')) {
-        sessionStorage.removeItem('studentSession');
-        sessionStorage.removeItem('adminSession');
+        localStorage.removeItem('studentSession');
+        localStorage.removeItem('adminSession');
         window.location.href = 'login.html';
     }
 };
@@ -352,7 +352,7 @@ function saveToHistory(treeData, results, age, latitude, longitude) {
 
 // Submit data to admin's Firebase collection
 async function submitToAdmin(treeData, results, age, latitude, longitude) {
-    const studentSession = sessionStorage.getItem('studentSession');
+    const studentSession = localStorage.getItem('studentSession');
     if (!studentSession) {
         console.log('⚠️ No student session found, skipping admin submission');
         return;

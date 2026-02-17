@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>🌳 EcoTree Tracker - Login</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -17,10 +17,10 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            overflow: hidden;
+            min-height: 100dvh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
         }
 
         /* Animated Background */
@@ -32,21 +32,26 @@
             height: 100%;
             overflow: hidden;
             z-index: 0;
+            pointer-events: none;
         }
 
         .leaf {
             position: absolute;
-            opacity: 0.5;
-            animation: fall 10s linear infinite;
+            opacity: 0.4;
+            animation: fall 12s linear infinite;
+            will-change: transform;
         }
 
         @keyframes fall {
             0% {
-                transform: translateY(-100px) rotate(0deg);
-                opacity: 0.5;
+                transform: translateY(-100px) rotate(0deg) scale(1);
+                opacity: 0.4;
+            }
+            50% {
+                opacity: 0.6;
             }
             100% {
-                transform: translateY(100vh) rotate(360deg);
+                transform: translateY(100vh) rotate(360deg) scale(0.5);
                 opacity: 0;
             }
         }
@@ -55,100 +60,178 @@
             position: relative;
             z-index: 1;
             text-align: center;
-            padding: 20px;
+            padding: 40px 20px 100px;
+            min-height: 100vh;
+            min-height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
         }
 
         .logo-section {
-            margin-bottom: 40px;
+            margin-bottom: 36px;
             animation: fadeInDown 0.8s ease-out;
+            flex-shrink: 0;
         }
 
         .logo-icon {
-            font-size: 80px;
-            margin-bottom: 20px;
-            animation: bounce 2s ease-in-out infinite;
+            font-size: 72px;
+            margin-bottom: 12px;
+            animation: bounce 3s ease-in-out infinite;
+            filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2));
         }
 
         @keyframes bounce {
             0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
+            50% { transform: translateY(-8px); }
         }
 
         .logo-section h1 {
             color: white;
-            font-size: 3rem;
-            margin-bottom: 10px;
+            font-size: 2.4rem;
+            font-weight: 800;
+            margin-bottom: 8px;
             text-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            letter-spacing: -0.5px;
         }
 
         .logo-section p {
-            color: rgba(255,255,255,0.9);
-            font-size: 1.2rem;
+            color: rgba(255,255,255,0.85);
+            font-size: 1rem;
+            font-weight: 400;
+            max-width: 320px;
+            margin: 0 auto;
+            line-height: 1.5;
         }
 
         .login-options {
             display: flex;
-            gap: 30px;
-            justify-content: center;
-            flex-wrap: wrap;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+            width: 100%;
+            max-width: 420px;
             animation: fadeInUp 1s ease-out;
         }
 
         .option-card {
             background: white;
-            padding: 50px 40px;
-            border-radius: 20px;
-            width: 300px;
+            padding: 32px 28px;
+            border-radius: 24px;
+            width: 100%;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
             text-decoration: none;
             color: inherit;
             display: block;
+            position: relative;
+            overflow: hidden;
+            border: 3px solid transparent;
         }
 
-        .option-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        .option-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            transition: height 0.3s ease;
+        }
+
+        .option-card:active {
+            transform: scale(0.97);
         }
 
         .option-card.admin {
-            border-top: 5px solid #667eea;
+            border-color: rgba(102, 126, 234, 0.15);
+        }
+
+        .option-card.admin::before {
+            background: linear-gradient(135deg, #667eea, #764ba2);
         }
 
         .option-card.student {
-            border-top: 5px solid #f5576c;
+            border-color: rgba(245, 87, 108, 0.15);
+        }
+
+        .option-card.student::before {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+        }
+
+        .option-card:hover::before,
+        .option-card:active::before {
+            height: 6px;
         }
 
         .option-icon {
-            font-size: 60px;
-            margin-bottom: 20px;
+            width: 72px;
+            height: 72px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 18px;
+            font-size: 32px;
         }
 
         .option-card.admin .option-icon {
+            background: linear-gradient(135deg, rgba(102,126,234,0.12), rgba(118,75,162,0.12));
             color: #667eea;
         }
 
         .option-card.student .option-icon {
+            background: linear-gradient(135deg, rgba(240,147,251,0.12), rgba(245,87,108,0.12));
             color: #f5576c;
         }
 
         .option-card h2 {
-            font-size: 1.8rem;
-            margin-bottom: 10px;
-            color: #2d3436;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #1a1a2e;
         }
 
         .option-card p {
-            color: #636e72;
-            font-size: 1rem;
-            line-height: 1.5;
+            color: #6b7280;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .card-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 16px;
+            color: #9ca3af;
+            font-size: 0.85rem;
+            font-weight: 600;
+            gap: 6px;
+            transition: all 0.3s;
+        }
+
+        .option-card:hover .card-arrow,
+        .option-card:active .card-arrow {
+            gap: 10px;
+        }
+
+        .option-card.admin:hover .card-arrow,
+        .option-card.admin:active .card-arrow {
+            color: #667eea;
+        }
+
+        .option-card.student:hover .card-arrow,
+        .option-card.student:active .card-arrow {
+            color: #f5576c;
         }
 
         @keyframes fadeInDown {
             from {
                 opacity: 0;
-                transform: translateY(-30px);
+                transform: translateY(-24px);
             }
             to {
                 opacity: 1;
@@ -159,7 +242,7 @@
         @keyframes fadeInUp {
             from {
                 opacity: 0;
-                transform: translateY(30px);
+                transform: translateY(24px);
             }
             to {
                 opacity: 1;
@@ -168,28 +251,72 @@
         }
 
         .footer-text {
-            position: fixed;
-            bottom: 20px;
-            left: 0;
-            right: 0;
+            position: relative;
+            margin-top: 32px;
             text-align: center;
-            color: rgba(255,255,255,0.8);
-            font-size: 0.9rem;
+            color: rgba(255,255,255,0.7);
+            font-size: 0.8rem;
+            padding-bottom: 24px;
         }
 
-        @media (max-width: 768px) {
-            .logo-section h1 {
-                font-size: 2rem;
+        /* Desktop styles */
+        @media (min-width: 769px) {
+            .container {
+                justify-content: center;
+                padding: 40px 20px;
             }
 
             .login-options {
-                flex-direction: column;
-                align-items: center;
+                flex-direction: row;
+                max-width: 700px;
+                gap: 24px;
             }
 
             .option-card {
-                width: 90%;
-                max-width: 350px;
+                width: 50%;
+                padding: 40px 32px;
+            }
+
+            .option-card:hover {
+                transform: translateY(-6px);
+                box-shadow: 0 16px 48px rgba(0,0,0,0.25);
+            }
+
+            .logo-section h1 {
+                font-size: 3rem;
+            }
+
+            .logo-section p {
+                font-size: 1.15rem;
+                max-width: 500px;
+            }
+        }
+
+        /* Small mobile */
+        @media (max-width: 380px) {
+            .logo-section h1 {
+                font-size: 1.9rem;
+            }
+
+            .option-card {
+                padding: 24px 20px;
+            }
+
+            .option-icon {
+                width: 60px;
+                height: 60px;
+                font-size: 28px;
+            }
+
+            .option-card h2 {
+                font-size: 1.3rem;
+            }
+        }
+
+        /* Safe area for notched phones */
+        @supports (padding: env(safe-area-inset-bottom)) {
+            .container {
+                padding-bottom: calc(80px + env(safe-area-inset-bottom));
             }
         }
     </style>
@@ -215,6 +342,9 @@
                 </div>
                 <h2>Faculty Login</h2>
                 <p>Access admin panel to manage students, generate access codes, and view all data</p>
+                <div class="card-arrow">
+                    <span>Continue</span> <i class="fas fa-arrow-right"></i>
+                </div>
             </a>
 
             <!-- Student Card -->
@@ -224,15 +354,27 @@
                 </div>
                 <h2>Student Login</h2>
                 <p>Enter your access code to start collecting tree data and environmental calculations</p>
+                <div class="card-arrow">
+                    <span>Continue</span> <i class="fas fa-arrow-right"></i>
+                </div>
             </a>
+        </div>
+
+        <div class="footer-text">
+            <p>🌍 Making environmental impact visible • Tree by tree</p>
         </div>
     </div>
 
-    <div class="footer-text">
-        <p>🌍 Making environmental impact visible • Tree by tree</p>
-    </div>
-
     <script>
+        // Check if already logged in - redirect to appropriate page
+        const studentSession = localStorage.getItem('studentSession');
+        const adminSession = localStorage.getItem('adminSession');
+        if (studentSession) {
+            window.location.href = 'index.html';
+        } else if (adminSession) {
+            window.location.href = 'admin.html';
+        }
+
         // Create falling leaves animation
         const leavesBg = document.getElementById('leavesBg');
         const leafEmojis = ['🍃', '🌿', '🍂', '🌱'];
