@@ -59,6 +59,9 @@ function initializeCameraHandlers() {
         advancedML.stopCamera();
         cameraModal.style.display = 'none';
         resetMeasurementUI();
+        // Remove any extra info panels
+        const extraInfo = document.querySelector('.extra-measurement-info');
+        if (extraInfo) extraInfo.remove();
     });
 
     // Manual input button
@@ -104,19 +107,29 @@ function initializeCameraHandlers() {
             captureBtn.style.display = 'none';
             retakeBtn.style.display = 'inline-block';
             
-            // Show loading message
+            // Show processing overlay
             const loadingMsg = document.createElement('div');
             loadingMsg.id = 'autoProcessing';
             loadingMsg.style.cssText = 'text-align: center; padding: 20px; color: #27ae60; font-weight: bold;';
-            loadingMsg.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Automatically detecting tree...';
+            
+            // Check if species is selected
+            const treeSearchVal = document.getElementById('treeSearch') ? document.getElementById('treeSearch').value : '';
+            const speciesInfo = treeSearchVal ? ` (calibrating for ${treeSearchVal})` : ' (select species for better accuracy)';
+            
+            loadingMsg.innerHTML = `
+                <i class="fas fa-spinner fa-spin"></i> Analyzing tree${speciesInfo}...<br>
+                <small style="color: #666; font-weight: normal; margin-top: 8px; display: block;">
+                    Running: Edge Detection → Trunk Analysis → Measurement Fusion
+                </small>
+            `;
             document.querySelector('.camera-modal-content').appendChild(loadingMsg);
             
             try {
-                // Automatic measurement (NO reference object needed!)
+                // Load models and run automatic measurement
                 await advancedML.loadModels();
                 const measurements = await advancedML.measureAutomatically(resultCanvas);
                 
-                // Draw detection overlay
+                // Draw advanced detection overlay
                 advancedML.drawDetectionOverlay(resultCanvas, measurements.bounds, measurements);
                 
                 // Display results
@@ -129,10 +142,36 @@ function initializeCameraHandlers() {
                 if (loadingMsg) loadingMsg.remove();
                 document.getElementById('measurementResults').style.display = 'block';
                 
+                // Add species & method info under results
+                const resultsDiv = document.getElementById('measurementResults');
+                let extraInfo = resultsDiv.querySelector('.extra-measurement-info');
+                if (!extraInfo) {
+                    extraInfo = document.createElement('div');
+                    extraInfo.className = 'extra-measurement-info';
+                    extraInfo.style.cssText = 'margin-top: 10px; padding: 10px; background: #f0f8f0; border-radius: 8px; font-size: 13px; color: #555;';
+                    resultsDiv.appendChild(extraInfo);
+                }
+                
+                let methodText = '';
+                if (measurements.methodDetails) {
+                    methodText = measurements.methodDetails.map(function(m) {
+                        return '<b>' + m.name.replace('_', ' ') + '</b>: ' + m.value.toFixed(1) + ' cm';
+                    }).join(' | ');
+                }
+                
+                extraInfo.innerHTML = `
+                    <div style="margin-bottom: 5px;">
+                        <i class="fas fa-brain" style="color: #8e44ad;"></i>
+                        <b>Analysis Methods:</b> ${methodText}
+                    </div>
+                    ${measurements.species ? '<div><i class="fas fa-leaf" style="color: #27ae60;"></i> Calibrated for: <b>' + measurements.species + '</b></div>' : '<div style="color: #e67e22;"><i class="fas fa-exclamation-triangle"></i> Select species above for better accuracy</div>'}
+                    <div style="margin-top: 4px;"><i class="fas fa-bolt" style="color: #f39c12;"></i> Processed in ${measurements.processingTime || '?'}ms</div>
+                `;
+                
             } catch (error) {
                 if (loadingMsg) loadingMsg.remove();
-                alert('Auto-detection failed: ' + error.message + '\n\nPlease ensure:\n- Tree is centered\n- Good lighting\n- Clear background');
-                retakeBtn.click(); // Go back to camera
+                alert('Auto-detection failed: ' + error.message + '\n\nPlease ensure:\n- Tree is centered in frame\n- Good lighting\n- Stand 2-3m away\n- Select tree species first');
+                retakeBtn.click();
             }
         };
         img.src = image;
@@ -189,18 +228,52 @@ function initializeCameraHandlers() {
         }
     });
 
-    // Use measurement
+    // Use measurement - auto fill circumference and auto calculate
     useMeasurementBtn.addEventListener('click', () => {
         const circumference = document.getElementById('detectedCircumference').textContent;
+        const circumferenceValue = parseFloat(circumference);
+        
+        if (isNaN(circumferenceValue) || circumferenceValue <= 0) {
+            alert('Invalid measurement. Please retake the photo.');
+            return;
+        }
+        
+        // Set circumference value
         document.getElementById('circumference').value = circumference;
+        document.getElementById('circumference').disabled = false;
         
         // Close modal
         mlMeasurement.stopCamera();
+        advancedML.stopCamera();
         cameraModal.style.display = 'none';
         resetMeasurementUI();
         
-        // Show success message
-        alert(`✅ Circumference set to ${circumference} cm\nYou can now calculate the tree's environmental impact!`);
+        // Show success notification
+        showAutoFillNotification(circumferenceValue);
+        
+        // Auto-trigger calculation after a short delay
+        setTimeout(() => {
+            const treeForm = document.getElementById('treeForm');
+            if (treeForm) {
+                // Check if species is selected
+                const treeSearch = document.getElementById('treeSearch');
+                const treeSpecies = document.getElementById('treeSpecies');
+                
+                if ((treeSearch && treeSearch.value) || (treeSpecies && treeSpecies.value)) {
+                    // Auto submit the form to calculate
+                    const submitEvent = new Event('submit', { cancelable: true });
+                    treeForm.dispatchEvent(submitEvent);
+                } else {
+                    // Highlight species field
+                    if (treeSearch) {
+                        treeSearch.style.border = '2px solid #e74c3c';
+                        treeSearch.style.animation = 'pulse 1s ease-in-out 3';
+                        treeSearch.focus();
+                        treeSearch.placeholder = '⚠️ Select species to auto-calculate!';
+                    }
+                }
+            }
+        }, 800);
     });
 }
 
@@ -354,4 +427,70 @@ function resetMeasurementUI() {
     referenceStartX = 0;
     referenceEndX = 0;
     isDrawingReference = false;
+}
+
+// Show auto-fill success notification (replaces alert)
+function showAutoFillNotification(circumferenceValue) {
+    // Remove existing notification if any
+    const existing = document.getElementById('autoFillNotification');
+    if (existing) existing.remove();
+    
+    const notification = document.createElement('div');
+    notification.id = 'autoFillNotification';
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: linear-gradient(135deg, #27ae60, #2ecc71);
+        color: white;
+        padding: 16px 28px;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: bold;
+        z-index: 10000;
+        box-shadow: 0 8px 32px rgba(39, 174, 96, 0.4);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        animation: slideDownNotif 0.4s ease-out;
+        max-width: 90vw;
+    `;
+    
+    notification.innerHTML = `
+        <i class="fas fa-check-circle" style="font-size: 24px;"></i>
+        <div>
+            <div style="font-size: 14px; opacity: 0.9;">Auto-Detected Circumference</div>
+            <div style="font-size: 20px;">${circumferenceValue.toFixed(1)} cm</div>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Add animation keyframes if not exists
+    if (!document.getElementById('autoFillAnimStyle')) {
+        const style = document.createElement('style');
+        style.id = 'autoFillAnimStyle';
+        style.textContent = `
+            @keyframes slideDownNotif {
+                from { transform: translateX(-50%) translateY(-100%); opacity: 0; }
+                to { transform: translateX(-50%) translateY(0); opacity: 1; }
+            }
+            @keyframes pulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.02); border-color: #e74c3c; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Auto remove after 4 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.style.transition = 'opacity 0.5s, transform 0.5s';
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(-50%) translateY(-100%)';
+            setTimeout(() => notification.remove(), 500);
+        }
+    }, 4000);
 }
