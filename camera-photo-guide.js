@@ -15,13 +15,14 @@ function showCameraGuide() {
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
         padding: 20px;
         animation: fadeIn 0.3s ease-out;
     `;
     
     guide.innerHTML = `
-        <div style="max-width: 600px; text-align: center; color: white;">
+        <div style="max-width: 600px; text-align: center; color: white; margin: auto; padding: 20px 0;">
             <h2 style="color: #10b981; font-size: 1.8rem; margin-bottom: 20px;">
                 <i class="fas fa-camera"></i> सही Photo कैसे लें?
             </h2>
