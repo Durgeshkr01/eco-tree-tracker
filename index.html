@@ -80,12 +80,12 @@
                     <label for="circumference">
                         <i class="fas fa-circle-notch"></i> Tree Circumference (at Breast Height)
                     </label>
-                    <div style="display: flex; gap: 10px; margin-bottom: 12px;">
-                        <button type="button" id="openCameraBtn" class="btn-secondary" style="flex: 1; padding: 12px 14px; font-size: 0.9rem; background: linear-gradient(135deg, #27ae60, #2ecc71); border-radius: 12px; font-weight: 700; box-shadow: 0 3px 12px rgba(39,174,96,0.3);">
+                    <div style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
+                        <button type="button" id="openCameraBtn" class="btn-secondary" style="flex: 1; padding: 10px 14px; font-size: 0.85rem; min-width: 140px;">
                             <i class="fas fa-camera"></i> AI Camera
                         </button>
-                        <button type="button" id="manualInputBtn" class="btn-secondary" style="flex: 1; padding: 12px 14px; font-size: 0.9rem; background: linear-gradient(135deg, #636e72, #747d8c); border-radius: 12px; font-weight: 600;">
-                            <i class="fas fa-keyboard"></i> Manual Entry
+                        <button type="button" onclick="showCameraGuideAgain()" class="btn-secondary" style="padding: 10px 14px; font-size: 0.85rem; background: rgba(59,130,246,0.1); color: #60a5fa; border-color: rgba(59,130,246,0.2);">
+                            <i class="fas fa-question-circle"></i> Guide
                         </button>
                     </div>
                     <div class="input-with-unit" id="manualInputContainer">
@@ -358,29 +358,35 @@
 
         <!-- About the Science Section -->
         <section class="card science-section">
-            <h2><i class="fas fa-flask"></i> About the Science</h2>
+            <h2><i class="fas fa-flask"></i> About the Science - Indian Forestry Standards</h2>
             
             <div class="science-content">
                 <div class="methodology">
-                    <h3>Our Methodology</h3>
-                    <p>Our calculations are based on scientifically validated allometric equations specifically designed for Indian urban and dry tropical regions. The methodology follows IPCC guidelines and peer-reviewed research.</p>
+                    <h3>Our Methodology (FSI + International Standards)</h3>
+                    <p>Our calculations follow <strong>Forest Survey of India (FSI)</strong> guidelines combined with internationally peer-reviewed allometric equations calibrated for Indian tropical and subtropical forests.</p>
                     
                     <div class="formula-box">
-                        <h4>Key Formulas:</h4>
+                        <h4>Key Methods:</h4>
                         <ul>
-                            <li><strong>DBH Calculation:</strong> DBH = Circumference ÷ 3.14</li>
-                            <li><strong>Above-Ground Biomass:</strong> AGB = 34.4703 - 8.0671×D + 0.6589×D²</li>
-                            <li><strong>Below-Ground Biomass:</strong> BGB = 0.15 × AGB</li>
-                            <li><strong>Carbon Storage:</strong> Carbon = 0.5 × Total Biomass</li>
-                            <li><strong>CO₂ Equivalent:</strong> CO₂ = Carbon × 3.67</li>
-                            <li><strong>Oxygen Production:</strong> O₂ = Carbon × 2.67 (annual)</li>
+                            <li><strong>DBH Calculation:</strong> DBH = Circumference ÷ π (measured at 1.37m height)</li>
+                            <li><strong>Chave et al. (2005):</strong> AGB = exp(-2.977 + 2.568 × ln(ρD²)) — 50% weight</li>
+                            <li><strong>FSI Volume Method:</strong> AGB = Volume × ρ × BEF (1.6) — 30% weight</li>
+                            <li><strong>Brown (1989) IPCC:</strong> AGB = exp(-2.134 + 2.530 × ln(D)) × (ρ/0.60) — 20% weight</li>
+                            <li><strong>Below-Ground Biomass:</strong> BGB = AGB × 0.15-0.25 (size-dependent)</li>
+                            <li><strong>Carbon Storage:</strong> Carbon = Total Biomass × 0.47 (IPCC)</li>
+                            <li><strong>CO₂ Equivalent:</strong> CO₂ = Carbon × 3.67 (molecular weight ratio)</li>
+                            <li><strong>Oxygen Production:</strong> O₂ = Carbon × 2.67 × Activity Factor</li>
                         </ul>
+                        <p style="margin-top: 12px; color: #10b981; font-weight: 600;">
+                            <i class="fas fa-leaf"></i> Uses species-specific <strong>wood density (ρ)</strong> from FSI database for 50+ Indian trees
+                        </p>
                     </div>
                 </div>
                 
                 <div class="accuracy-note">
-                    <h4><i class="fas fa-info-circle"></i> Accuracy Note</h4>
-                    <p>These calculations provide estimates based on tree circumference at breast height (1.3m). Actual values may vary depending on tree species, age, health, environmental conditions, and local climate factors.</p>
+                    <h4><i class="fas fa-info-circle"></i> Accuracy & Validation</h4>
+                    <p>Our weighted-average approach combines three validated methods to ensure accuracy for Indian forest conditions. Wood density values (0.35-0.86 g/cm³) are sourced from Forest Survey of India species databases. Results represent annual carbon sequestration and oxygen production for mature, healthy trees.</p>
+                    <p style="margin-top: 8px;"><strong>Measurement Standard:</strong> DBH = Diameter at Breast Height (1.37 meters from ground), following international forestry conventions.</p>
                 </div>
             </div>
         </section>
@@ -602,8 +608,9 @@
     <!-- Scripts -->
     <script type="module" src="firebase-config.js?v=3"></script>
     <script src="tree-data.js"></script>
+    <script src="indian-forestry-calculator.js"></script>
     <script src="calculator.js"></script>
-    <script src="app.js?v=4"></script>
+    <script src="app.js?v=5"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <!-- PWA Service Worker Registration -->
@@ -858,11 +865,9 @@
             <div id="measurementResults" style="display: none;">
                 <div class="measurement-result-card">
                     <h4><i class="fas fa-chart-bar"></i> AI Detection Results</h4>
-                    <div class="measurement-values">
-                        <p><strong><i class="fas fa-arrows-alt-v" style="color:#10b981;"></i> Tree Height</strong> <span id="detectedHeight">-</span> cm</p>
-                        <p><strong><i class="fas fa-arrows-alt-h" style="color:#3b82f6;"></i> Trunk Diameter</strong> <span id="detectedWidth">-</span> cm</p>
-                        <p class="highlight-row"><strong><i class="fas fa-circle-notch" style="color:#ef4444;"></i> Circumference (DBH)</strong> <span id="detectedCircumference" style="color: #f87171; font-size: 1.3em; font-weight: bold;">-</span> cm</p>
-                        <p><strong><i class="fas fa-bullseye" style="color:#f59e0b;"></i> Confidence</strong> <span id="detectedConfidence">-</span>%</p>
+                    <div class="measurement-values" style="text-align: center;">
+                        <p class="highlight-row" style="margin: 20px 0;"><strong style="font-size: 1.1em;"><i class="fas fa-circle-notch" style="color:#10b981;"></i> Circumference (DBH)</strong> <br><span id="detectedCircumference" style="color: #10b981; font-size: 2.2em; font-weight: bold; display: block; margin: 10px 0;">-</span> <span style="font-size: 1.4em; color: rgba(255,255,255,0.8);">cm</span></p>
+                        <p style="margin-top: 16px;"><strong><i class="fas fa-bullseye" style="color:#f59e0b;"></i> Confidence</strong> <span id="detectedConfidence" style="color: #fbbf24; font-size: 1.2em; font-weight: 600;">-</span>%</p>
                     </div>
                     <button id="useMeasurementBtn" type="button" class="btn-primary use-measurement-btn">
                         <i class="fas fa-check-circle"></i> Use This Measurement
@@ -879,24 +884,35 @@
                 </button>
             </div>
 
-            <div class="reference-selector" style="display: none;">
-                <select id="referenceObject" class="reference-select">
-                    <option value="credit-card">Credit Card (8.5 cm)</option>
-                    <option value="a4-paper">A4 Paper (21 cm)</option>
-                    <option value="coin-10rs">10 Rs Coin (2.7 cm)</option>
-                    <option value="hand">Hand Width (~9 cm)</option>
-                    <option value="custom">Custom Size</option>
+            <div class="reference-selector" style="margin: 8px 16px; padding: 10px; background: rgba(16,185,129,0.06); border-radius: 10px; border: 1px solid rgba(16,185,129,0.15);">
+                <label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 6px;">
+                    <i class="fas fa-ruler" style="color:#10b981;"></i> Reference Object (for accuracy):
+                </label>
+                <select id="referenceObject" class="reference-select" style="width: 100%; padding: 8px 12px; background: rgba(30,41,59,0.8); border: 1px solid rgba(16,185,129,0.3); border-radius: 8px; color: #e2e8f0; font-size: 13px;">
+                    <option value="none">🤖 Auto-detect (AI will find references)</option>
+                    <option value="person">🧍 Person standing next to tree</option>
+                    <option value="credit-card">💳 Credit Card on trunk (8.5 cm)</option>
+                    <option value="coin-10rs">🪙 ₹10 Coin on trunk (2.7 cm)</option>
+                    <option value="coin-5rs">🪙 ₹5 Coin on trunk (2.3 cm)</option>
+                    <option value="a4-paper">📄 A4 Paper on trunk (21 cm)</option>
+                    <option value="ruler-30cm">📏 30cm Ruler (30 cm)</option>
+                    <option value="custom">✏️ Custom Size</option>
                 </select>
-            </div>
-            <div id="customSizeInput" style="display: none;">
-                <input type="number" id="customWidth" step="0.1" min="0.1" placeholder="Enter width in cm">
+                <div id="customSizeInput" style="display: none; margin-top: 6px;">
+                    <input type="number" id="customWidth" step="0.1" min="0.1" placeholder="Width in cm" style="width: 100%; padding: 8px 12px; background: rgba(30,41,59,0.8); border: 1px solid rgba(16,185,129,0.3); border-radius: 8px; color: #e2e8f0; font-size: 13px;">
+                </div>
+                <small style="color: rgba(255,255,255,0.3); font-size: 10px; display: block; margin-top: 4px;">
+                    💡 बेहतर accuracy के लिए — person या card trunk के पास रखें
+                </small>
             </div>
         </div>
     </div>
 
     <!-- ML Tree Measurement Script -->
+    <script src="real-world-measurement.js"></script>
     <script src="ml-tree-measurement.js"></script>
     <script src="advanced-ml-measurement.js"></script>
     <script src="camera-handler.js"></script>
+    <script src="camera-photo-guide.js"></script>
 </body>
 </html>

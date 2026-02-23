@@ -739,11 +739,11 @@ class AdvancedTreeML {
 
     _getTreeValidationError(isTree, meetsColorCriteria, hasPerson, hasVehicleOrBuilding, supportCount) {
         if (isTree) return null;
-        if (hasPerson) return 'No tree detected — image appears to contain a person. Please photograph a tree trunk with visible canopy.';
-        if (hasVehicleOrBuilding) return 'No tree detected — image appears to be an artificial object (building, vehicle, device). Please point camera at a tree.';
-        if (!meetsColorCriteria) return 'No tree detected — insufficient green foliage and brown bark visible. Ensure the tree (trunk + leaves) fills the frame.';
-        if (supportCount < 1) return 'Object detected but does not appear to be a tree. Ensure natural bark texture is visible and tree is centered.';
-        return 'No tree detected. Stand 2-3m from a tree, include trunk and canopy in frame.';
+        if (hasPerson) return 'Tree नहीं मिला — Photo में person दिख रहा है। कृपया tree की photo लें। 📸';
+        if (hasVehicleOrBuilding) return 'Tree नहीं मिला — यह building/vehicle/object लग रहा है। Camera tree पर point करें। 🌳';
+        if (!meetsColorCriteria) return 'Tree नहीं मिला — Green leaves और brown trunk दोनों साफ दिखने chahiye। 🍃';
+        if (supportCount < 1) return 'यह tree नहीं लग रहा। Natural bark texture और tree को center में रखें। 🌲';
+        return 'Tree नहीं मिला। Tree से 2-3m दूर खड़े हों, trunk + leaves frame में हों। 📏';
     }
 
     // ==================== STRUCTURAL VALIDATION (Post-Detection) ====================
@@ -756,21 +756,21 @@ class AdvancedTreeML {
         var trunkWidthRatio = bounds.trunkWidthPx / imgW;
         console.log('Structure check: trunkWidthRatio=' + trunkWidthRatio.toFixed(3));
         if (trunkWidthRatio > 0.30) {
-            return { valid: false, reason: 'Detected object is too wide to be a tree trunk (' + (trunkWidthRatio * 100).toFixed(0) + '% of frame). Stand 2-3m from tree.' };
+            return { valid: false, reason: 'Detected object बहुत चौड़ा है (' + (trunkWidthRatio * 100).toFixed(0) + '% of frame). Tree से 2-3m दूर खड़े हों। 📏' };
         }
         
         // Check 2: Trunk must be narrow compared to overall bounding box
         var trunkToBboxRatio = bounds.trunkWidthPx / Math.max(1, bounds.width);
         console.log('Structure check: trunkToBboxRatio=' + trunkToBboxRatio.toFixed(3));
         if (trunkToBboxRatio > 0.60) {
-            return { valid: false, reason: 'No distinct narrow trunk detected. Tree trunks should be narrower than the canopy.' };
+            return { valid: false, reason: 'पतला trunk detect नहीं हुआ। Tree का trunk पत्तियों से पतला होना chahiye। 🌲' };
         }
         
         // Check 3: Bounding box should be taller than wide (trees are vertical)
         var aspectRatio = bounds.height / Math.max(1, bounds.width);
         console.log('Structure check: aspectRatio=' + aspectRatio.toFixed(3));
         if (aspectRatio < 0.6) {
-            return { valid: false, reason: 'Detected object appears horizontal, not vertical like a tree. Ensure full trunk is visible.' };
+            return { valid: false, reason: 'Detected object horizontal लग रहा है, लेकिन tree vertical होता है। पूरा trunk दिखना chahiye। 📐' };
         }
         
         // Check 4: Verify vertical continuity — trunk pixels must form a continuous vertical column
@@ -816,7 +816,7 @@ class AdvancedTreeML {
             
             // Real tree trunk: continuous vertical brown band for at least 40% of scan height
             if (continuityRatio < 0.35) {
-                return { valid: false, reason: 'No continuous vertical trunk structure found. Ensure tree trunk is clearly visible from 2-3m.' };
+                return { valid: false, reason: 'Continuous vertical trunk structure नहीं मिली। Tree trunk 2-3m से साफ दिखनी chahiye। 🌳' };
             }
         }
         
@@ -845,7 +845,7 @@ class AdvancedTreeML {
             
             // Must have meaningful green above (canopy)
             if (greenInUpperPercent < 5) {
-                return { valid: false, reason: 'No green canopy detected above trunk. Ensure tree with leaves is visible in frame.' };
+                return { valid: false, reason: 'Trunk के ऊपर green canopy (पत्तियां) नहीं मिलीं। Tree + leaves frame में होने chahiye। 🍃' };
             }
         }
         
@@ -853,7 +853,7 @@ class AdvancedTreeML {
         var boundWidthRatio = bounds.width / imgW;
         var boundHeightRatio = bounds.height / imgH;
         if (boundWidthRatio > 0.85 && boundHeightRatio > 0.85) {
-            return { valid: false, reason: 'Detection covers the entire image. Stand further from the tree (2-3m recommended).' };
+            return { valid: false, reason: 'Detection पूरी image cover कर रहा है। Tree से और दूर खड़े हों (2-3m recommended). 📸' };
         }
         
         return { valid: true, reason: null };
@@ -861,96 +861,138 @@ class AdvancedTreeML {
 
     // ==================== REAL-WORLD SIZE ESTIMATION ====================
     
-    estimateRealWorldMeasurements(bounds, canvas, selectedSpecies) {
+    async estimateRealWorldMeasurements(bounds, canvas, selectedSpecies, cocoModel, imageFile) {
         const imgW = canvas.width;
         const imgH = canvas.height;
         
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // USE REAL-WORLD MEASUREMENT ENGINE (Photogrammetry + ML)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        if (typeof realWorldEngine !== 'undefined') {
+            console.log('🔬 Using Real-World Measurement Engine...');
+            
+            // Find trunk base Y for ground plane estimation
+            const trunkBaseY = bounds.y + bounds.height;
+            
+            // Full measurement pipeline: EXIF + References + Photogrammetry + Bayesian Fusion
+            // Pass species data so tree-only measurement can use species height for distance
+            let speciesData = null;
+            if (selectedSpecies) {
+                speciesData = this._getSpeciesData(selectedSpecies);
+            }
+            
+            const rwResult = await realWorldEngine.fullMeasurement(
+                canvas, bounds, this.cocoModel, imageFile, trunkBaseY, speciesData
+            );
+            
+            console.log('🎯 Real-World Result:', rwResult);
+            
+            // Validate against species data (soft constraint, NOT override)
+            let finalDiameter = rwResult.trunkDiameter;
+            let finalCircumference = rwResult.circumference;
+            let confidence = rwResult.confidence;
+            
+            if (selectedSpecies) {
+                const speciesCirc = this._getSpeciesCircumference(selectedSpecies);
+                // Only warn if WAY outside range (2x), don't force-clamp
+                if (finalCircumference < speciesCirc.min * 0.5 || finalCircumference > speciesCirc.max * 2.0) {
+                    console.warn(`⚠️ Measurement (${finalCircumference.toFixed(1)}cm) is unusual for ${selectedSpecies} (range: ${speciesCirc.min}-${speciesCirc.max}cm)`);
+                    confidence = Math.max(20, confidence - 15); // Reduce confidence, but keep the measurement
+                }
+            }
+            
+            // Get accuracy improvement tips
+            const tips = realWorldEngine.getAccuracyTips(rwResult);
+            
+            // Build method details for display
+            const methodDetails = [];
+            if (rwResult.allMethods) {
+                for (const m of rwResult.allMethods) {
+                    if (m.method.startsWith('reference_')) {
+                        methodDetails.push({
+                            name: m.method.replace('reference_', '🎯 '),
+                            value: m.trunkDiameter,
+                            weight: m.weight,
+                            label: `${m.method.replace('reference_', '')} detected`
+                        });
+                    } else if (m.method === 'ground_plane') {
+                        methodDetails.push({
+                            name: '📐 Ground Plane',
+                            value: m.trunkDiameter,
+                            weight: m.weight,
+                            label: `Distance: ${m.distance.toFixed(0)}cm`
+                        });
+                    } else if (m.method === 'species_height') {
+                        methodDetails.push({
+                            name: '🌳 Species Height',
+                            value: m.trunkDiameter,
+                            weight: m.weight,
+                            label: m.details
+                        });
+                    } else if (m.method === 'bark_texture') {
+                        methodDetails.push({
+                            name: '🌿 Bark Texture',
+                            value: m.trunkDiameter,
+                            weight: m.weight,
+                            label: `Texture analysis → ${m.distance.toFixed(0)}cm`
+                        });
+                    } else if (m.method === 'crown_allometry') {
+                        methodDetails.push({
+                            name: '🌲 Crown Analysis',
+                            value: m.trunkDiameter,
+                            weight: m.weight,
+                            label: m.details
+                        });
+                    }
+                }
+            }
+            
+            // If no good methods, add a low-confidence entry
+            if (methodDetails.length === 0) {
+                methodDetails.push({
+                    name: '📷 Camera FOV',
+                    value: finalDiameter,
+                    weight: 0.2,
+                    label: 'Camera geometry (lower accuracy)'
+                });
+            }
+            
+            return {
+                height: null, // We don't measure height
+                trunkWidth: finalDiameter.toFixed(1),
+                circumference: finalCircumference.toFixed(1),
+                estimatedDistance: rwResult.primaryDistance ? rwResult.primaryDistance.toFixed(0) : 'Unknown',
+                confidence: confidence.toFixed(1),
+                methodDetails: methodDetails,
+                realWorldData: rwResult,
+                accuracyTips: tips,
+                species: selectedSpecies
+            };
+        }
+        
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // FALLBACK: Basic camera geometry (if real-world engine not loaded)
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        console.warn('⚠️ Real-World Engine not loaded, using basic estimation');
+        
         const treeFillRatio = bounds.height / imgH;
-        
-        // Estimate tree real height from species data or default
-        let estimatedTreeHeightCm = 800; // default 8m
-        if (selectedSpecies) {
-            const speciesData = this._getSpeciesData(selectedSpecies);
-            if (speciesData && speciesData.avgHeight) {
-                estimatedTreeHeightCm = speciesData.avgHeight * 100;
-            }
-        }
-        
-        // METHOD 1: Camera Geometry
-        const fovRadV = (this.cameraParams.fovVertical * Math.PI) / 180;
-        const estimatedDistanceCm = estimatedTreeHeightCm / (2 * Math.tan(fovRadV / 2) * treeFillRatio);
-        
-        const trunkWidthRatio = bounds.trunkWidthPx / imgW;
         const fovRadH = (this.cameraParams.fovHorizontal * Math.PI) / 180;
-        const visibleWidthAtDistance = 2 * estimatedDistanceCm * Math.tan(fovRadH / 2);
-        const trunkDiameterCm_method1 = visibleWidthAtDistance * trunkWidthRatio;
         
-        // METHOD 2: Proportional Estimation (trunk to tree height ratio)
-        const trunkToTreeRatio = bounds.trunkWidthPx / bounds.height;
-        const trunkDiameterCm_method2 = estimatedTreeHeightCm * trunkToTreeRatio;
-        
-        // METHOD 3: Species-Specific Calibration
-        let trunkDiameterCm_method3 = null;
-        if (selectedSpecies) {
-            const speciesData = this._getSpeciesData(selectedSpecies);
-            if (speciesData && speciesData.avgDBH) {
-                trunkDiameterCm_method3 = speciesData.avgDBH;
-            }
-        }
-        
-        // FUSION: Weighted average with outlier detection
-        var methodWeights = [];
-        var m1Weight = (estimatedDistanceCm > 80 && estimatedDistanceCm < 1500) ? 0.35 : 0.20;
-        methodWeights.push({ value: trunkDiameterCm_method1, weight: m1Weight, name: 'camera_geometry' });
-        methodWeights.push({ value: trunkDiameterCm_method2, weight: 0.25, name: 'proportional' });
-        
-        if (trunkDiameterCm_method3 !== null) {
-            // Species calibration is the most reliable anchor — give it highest weight
-            methodWeights.push({ value: trunkDiameterCm_method3, weight: 0.45, name: 'species_calibration' });
-        }
-        
-        // Outlier detection: if a method deviates >3x from median, reduce its weight
-        var methodValues = methodWeights.map(function(m) { return m.value; }).sort(function(a, b) { return a - b; });
-        var medianValue = methodValues[Math.floor(methodValues.length / 2)];
-        for (var mi = 0; mi < methodWeights.length; mi++) {
-            var ratio = methodWeights[mi].value / Math.max(0.1, medianValue);
-            if (ratio > 3 || ratio < 0.33) {
-                methodWeights[mi].weight *= 0.2; // Heavily downweight outliers
-            }
-        }
-        
-        var totalWeight = methodWeights.reduce(function(sum, m) { return sum + m.weight; }, 0);
-        var finalDiameter = methodWeights.reduce(function(sum, m) { return sum + m.value * (m.weight / totalWeight); }, 0);
-        
-        // Sanity check against species data
-        if (selectedSpecies) {
-            var speciesCirc = this._getSpeciesCircumference(selectedSpecies);
-            var estimatedCirc = Math.PI * finalDiameter;
-            if (estimatedCirc < speciesCirc.min * 0.7) {
-                finalDiameter = (speciesCirc.min * 0.7) / Math.PI;
-            }
-            if (estimatedCirc > speciesCirc.max * 1.3) {
-                finalDiameter = (speciesCirc.max * 1.3) / Math.PI;
-            }
-        }
-        
-        // Global sanity: realistic tree diameter 3-250 cm
-        finalDiameter = Math.max(3, Math.min(250, finalDiameter));
-        
-        var circumference = Math.PI * finalDiameter;
-        var confidence = this._calculateConfidence(bounds, treeFillRatio, methodWeights, selectedSpecies, imgW, imgH);
-        
-        console.log('Methods:', methodWeights.map(function(m) { return m.name + ': ' + m.value.toFixed(1) + 'cm (w:' + m.weight.toFixed(2) + ')'; }));
-        console.log('Final diameter: ' + finalDiameter.toFixed(1) + ' cm, Circumference: ' + circumference.toFixed(1) + ' cm');
-        console.log('Estimated distance: ' + estimatedDistanceCm.toFixed(0) + ' cm');
+        // Assume 250cm distance as fallback
+        const assumedDist = 250;
+        const visibleWidth = 2 * assumedDist * Math.tan(fovRadH / 2);
+        const trunkDiameter = visibleWidth * (bounds.trunkWidthPx / imgW);
+        const circumference = Math.PI * trunkDiameter;
         
         return {
-            height: estimatedTreeHeightCm.toFixed(1),
-            trunkWidth: finalDiameter.toFixed(1),
+            height: null,
+            trunkWidth: trunkDiameter.toFixed(1),
             circumference: circumference.toFixed(1),
-            estimatedDistance: estimatedDistanceCm.toFixed(0),
-            confidence: confidence.toFixed(1),
-            methodDetails: methodWeights
+            estimatedDistance: assumedDist.toFixed(0),
+            confidence: '35.0',
+            methodDetails: [{ name: '📷 Basic FOV', value: trunkDiameter, label: 'Assumed distance (low accuracy)' }],
+            species: selectedSpecies
         };
     }
 
@@ -1004,11 +1046,11 @@ class AdvancedTreeML {
 
     // ==================== MAIN MEASUREMENT FUNCTION ====================
     
-    async measureAutomatically(canvas) {
+    async measureAutomatically(canvas, imageFile) {
         try {
             if (!this.isModelLoaded) { await this.loadModels(); }
             
-            console.log('Starting advanced tree analysis...');
+            console.log('🔬 Starting Real-World Tree Analysis...');
             var startTime = performance.now();
             
             var context = canvas.getContext('2d');
@@ -1019,7 +1061,8 @@ class AdvancedTreeML {
             console.log('AI Object Detection:', aiDetection);
             
             if (!aiDetection.isTree) {
-                throw new Error(aiDetection.errorMessage || 'AI detected a non-tree object. Please photograph an actual tree.');
+                const hindiMsg = aiDetection.errorMessage + '\n\n🇮🇳 यह tree नहीं है! कृपया असली पेड़ की photo लें।';
+                throw new Error(hindiMsg);
             }
             
             // Step 1: Color-based tree validation (secondary check)
@@ -1027,7 +1070,8 @@ class AdvancedTreeML {
             console.log('Color validation:', validation);
             
             if (!validation.isTree) {
-                throw new Error(validation.errorMessage || 'No tree detected! Please ensure the tree trunk and canopy are clearly visible.');
+                const hindiMsg = validation.errorMessage + '\n\n🌳 पेड़ नहीं मिला! Tree का trunk और पत्तियां साफ दिखनी chahiye।';
+                throw new Error(hindiMsg);
             }
             
             // Step 2: Gaussian blur for noise reduction
@@ -1038,7 +1082,7 @@ class AdvancedTreeML {
             console.log('Segmentation: Green ' + segResult.greenPercent + '%, Trunk ' + segResult.trunkPercent + '%');
             
             if (parseFloat(segResult.greenPercent) < 1 && parseFloat(segResult.trunkPercent) < 1) {
-                throw new Error('Tree not clearly visible. Ensure tree fills 30-80% of frame with good lighting.');
+                throw new Error('Tree साफ नहीं दिख रहा! Frame में tree 30-80% भरा होना chahiye और अच्छी रोशनी होनी chahiye। 📸');
             }
             
             // Step 4: Precise trunk detection with vertical analysis
@@ -1046,7 +1090,7 @@ class AdvancedTreeML {
             console.log('Trunk detected:', bounds);
             
             if (bounds.trunkWidthPx < 5) {
-                throw new Error('Trunk not clearly detected. Ensure good lighting on trunk and stand 2-3m away.');
+                throw new Error('Trunk साफ detect नहीं हुआ! 💡 सुझाव:\n• Trunk पर अच्छी रोशनी होनी chahiye\n• Tree से 2-3 मीटर दूर खड़े रहें\n• Camera को सीधा (level) रखें');
             }
             
             // Step 4b: Structural validation - reject non-tree shapes
@@ -1055,7 +1099,7 @@ class AdvancedTreeML {
                 throw new Error(structureCheck.reason);
             }
             
-            // Step 5: Get selected species for calibration
+            // Step 5: Get selected species for validation (soft constraint only)
             var selectedSpecies = null;
             try {
                 var treeSpeciesSelect = document.getElementById('treeSpecies');
@@ -1073,20 +1117,20 @@ class AdvancedTreeML {
                 console.warn('Could not get species:', e);
             }
             
-            console.log('Species for calibration:', selectedSpecies || 'none');
+            console.log('Species for validation:', selectedSpecies || 'none');
             
-            // Step 6: Estimate real-world measurements with fusion
-            var measurements = this.estimateRealWorldMeasurements(bounds, canvas, selectedSpecies);
+            // Step 6: REAL-WORLD MEASUREMENT (Photogrammetry + Reference Objects + Bayesian Fusion)
+            var measurements = await this.estimateRealWorldMeasurements(bounds, canvas, selectedSpecies, this.cocoModel, imageFile);
             
             // Step 7: Final validation
             var circumference = parseFloat(measurements.circumference);
             if (circumference < 5 || circumference > 700) {
-                throw new Error('Detected circumference (' + circumference + ' cm) is unrealistic. Please retake from 2-3m distance.');
+                throw new Error('Detected circumference (' + circumference + ' cm) असंभव है! 🔄 फिर से photo लें:\n• Tree से 2-3 मीटर दूर\n• Camera छाती की ऊंचाई पर\n• Trunk frame के center में');
             }
             
             var elapsed = (performance.now() - startTime).toFixed(0);
-            console.log('Analysis complete in ' + elapsed + 'ms');
-            console.log('Height: ' + measurements.height + ' cm, Circumference: ' + measurements.circumference + ' cm, Confidence: ' + measurements.confidence + '%');
+            console.log('✅ Analysis complete in ' + elapsed + 'ms');
+            console.log('Circumference: ' + measurements.circumference + ' cm, Confidence: ' + measurements.confidence + '%');
             
             return {
                 height: measurements.height,
@@ -1095,6 +1139,8 @@ class AdvancedTreeML {
                 estimatedDistance: measurements.estimatedDistance,
                 confidence: measurements.confidence,
                 methodDetails: measurements.methodDetails,
+                realWorldData: measurements.realWorldData,
+                accuracyTips: measurements.accuracyTips,
                 bounds: bounds,
                 validation: validation,
                 species: selectedSpecies,

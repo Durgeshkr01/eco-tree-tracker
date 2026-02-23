@@ -246,8 +246,8 @@ function performCalculation() {
     // Get tree species data
     const treeData = getTreeData(speciesIndex);
 
-    // Calculate results
-    const results = calculator.calculate(circumference);
+    // Calculate results using Indian Forestry Calculator
+    const results = indianCalculator.calculate(circumference, treeData.name);
 
     // Display results
     displayResults(treeData, results, age, latitude, longitude);

@@ -55,13 +55,29 @@ http://localhost:8000
 
 ## Calculations 🔬
 
-Based on scientific research:
+Based on **Indian Forestry Standards** (Forest Survey of India + International Methods):
 
-- **AGB** (Above-Ground Biomass) = 34.4703 - 8.0671×D + 0.6589×D²
-- **BGB** (Below-Ground Biomass) = AGB × 0.15
-- **Carbon Stored** = Total Biomass × 0.5
-- **CO₂ Equivalent** = (Carbon × 44) / 12
-- **Oxygen Produced** = CO₂ × 0.727
+### Methods Used:
+1. **Chave et al. (2005)** - Tropical Forest Allometric Equations
+   - AGB = exp(-2.977 + 2.568 × ln(ρ × D²))
+   
+2. **FSI Volume-Based Method** - Species-specific volume tables
+   - Uses Biomass Expansion Factor (BEF) = 1.6
+   
+3. **Brown (1989)** - IPCC Pantropical Equation
+   - AGB = exp(-2.134 + 2.530 × ln(D)) × (ρ/0.60)
+
+### Weighted Average:
+- **Final AGB** = (Chave × 50%) + (FSI × 30%) + (Brown × 20%)
+- **BGB** (Below-Ground) = AGB × 0.15-0.25 (size-dependent)
+- **Carbon Stored** = Total Biomass × 0.47 (IPCC standard)
+- **CO₂ Equivalent** = Carbon × 3.67 (molecular weight ratio)
+- **O₂ Production** = Carbon × 2.67 × Activity Factor
+
+### Species-Specific:
+- **Wood Density (ρ)**: Uses actual values for 50+ Indian tree species
+- **Root Ratio**: Varies with tree size (15-25%)
+- **O₂ Activity**: Adjusted for tree maturity
 
 ## Tree Species Database 🌲
 

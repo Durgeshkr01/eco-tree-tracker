@@ -57,8 +57,8 @@ function initializeCameraHandlers() {
                 ctx.drawImage(img, 0, 0, w, h);
                 resultCanvas.style.display = 'block';
 
-                // Start analysis
-                await analyzePhoto(resultCanvas);
+                // Start analysis — pass original file for EXIF extraction
+                await analyzePhoto(resultCanvas, file);
             };
             img.src = evt.target.result;
         };
@@ -66,7 +66,7 @@ function initializeCameraHandlers() {
     });
 
     // ===== Analyze the photo =====
-    async function analyzePhoto(canvas) {
+    async function analyzePhoto(canvas, imageFile) {
         const statusEl = document.getElementById('analysisStatus');
         const errorEl = document.getElementById('analysisError');
         const errorText = document.getElementById('analysisErrorText');
@@ -79,15 +79,28 @@ function initializeCameraHandlers() {
         retakeTopEl.style.display = 'none';
 
         try {
+            // Pass manual reference object selection to real-world engine
+            if (typeof realWorldEngine !== 'undefined' && referenceObjectSelect) {
+                const refValue = referenceObjectSelect.value;
+                if (refValue && refValue !== 'none') {
+                    let refWidth = null;
+                    if (refValue === 'custom' && customWidthInput) {
+                        refWidth = parseFloat(customWidthInput.value);
+                    }
+                    realWorldEngine.setManualReference(refValue, refWidth);
+                    console.log('📏 Manual reference set:', refValue, refWidth ? refWidth + 'cm' : '');
+                } else {
+                    realWorldEngine.clearManualReference();
+                }
+            }
+
             await advancedML.loadModels();
-            const measurements = await advancedML.measureAutomatically(canvas);
+            const measurements = await advancedML.measureAutomatically(canvas, imageFile);
 
             // Draw detection overlay on canvas
             advancedML.drawDetectionOverlay(canvas, measurements.bounds, measurements);
 
-            // Fill results
-            document.getElementById('detectedHeight').textContent = measurements.height;
-            document.getElementById('detectedWidth').textContent = measurements.trunkWidth;
+            // Fill results - only Circumference is used in calculations
             document.getElementById('detectedCircumference').textContent = measurements.circumference;
             document.getElementById('detectedConfidence').textContent = measurements.confidence;
 
@@ -117,20 +130,48 @@ function initializeCameraHandlers() {
             parentEl.appendChild(extraInfo);
         }
 
+        // Build method details text
         let methodText = '';
         if (measurements.methodDetails) {
             methodText = measurements.methodDetails.map(function(m) {
-                return '<b>' + m.name.replace('_', ' ') + '</b>: ' + m.value.toFixed(1) + ' cm';
+                return '<b>' + m.name.replace(/_/g, ' ') + '</b>: ' + m.value.toFixed(1) + ' cm' +
+                       (m.weight ? ' <span style="opacity:0.6">(' + (m.weight * 100).toFixed(0) + '%)</span>' : '');
             }).join(' | ');
+        }
+
+        // Real-world data display
+        let realWorldHTML = '';
+        if (measurements.realWorldData) {
+            const rwd = measurements.realWorldData;
+            const parts = [];
+            if (rwd.referenceUsed) parts.push('📏 Reference: <b>' + rwd.referenceUsed + '</b>');
+            if (rwd.estimatedDistance) parts.push('📐 Distance: <b>' + rwd.estimatedDistance.toFixed(1) + 'm</b>');
+            if (rwd.exifFocalLength) parts.push('📷 Focal: <b>' + rwd.exifFocalLength.toFixed(1) + 'mm</b>');
+            if (rwd.measurementBasis) parts.push('🔬 Basis: <b>' + rwd.measurementBasis + '</b>');
+            if (parts.length) {
+                realWorldHTML = '<div style="margin-top:6px; padding-top:6px; border-top:1px solid rgba(255,255,255,0.05);">' +
+                    parts.join(' &nbsp;|&nbsp; ') + '</div>';
+            }
+        }
+
+        // Accuracy tips display (Hindi)
+        let tipsHTML = '';
+        if (measurements.accuracyTips && measurements.accuracyTips.length > 0) {
+            tipsHTML = '<div style="margin-top:8px; padding:8px; background:rgba(245,158,11,0.1); border-radius:8px; border:1px solid rgba(245,158,11,0.2);">' +
+                '<div style="color:#f59e0b; margin-bottom:4px;"><i class="fas fa-lightbulb"></i> <b>बेहतर accuracy के लिए:</b></div>' +
+                measurements.accuracyTips.map(function(tip) { return '<div style="margin-left:8px;">• ' + tip + '</div>'; }).join('') +
+                '</div>';
         }
 
         extraInfo.innerHTML = `
             <div style="margin-bottom: 5px;">
                 <i class="fas fa-brain" style="color: #a78bfa;"></i>
-                <b>Methods:</b> ${methodText}
+                <b>ML Methods:</b> ${methodText}
             </div>
-            ${measurements.species ? '<div><i class="fas fa-leaf" style="color: #10b981;"></i> Calibrated for: <b>' + measurements.species + '</b></div>' : '<div style="color: #f59e0b;"><i class="fas fa-exclamation-triangle"></i> Select species for better accuracy</div>'}
-            <div style="margin-top: 4px;"><i class="fas fa-bolt" style="color: #f59e0b;"></i> Processed in ${measurements.processingTime || '?'}ms</div>
+            ${realWorldHTML}
+            ${measurements.species ? '<div style="margin-top:4px;"><i class="fas fa-leaf" style="color: #10b981;"></i> Species: <b>' + measurements.species + '</b></div>' : '<div style="color: #f59e0b; margin-top:4px;"><i class="fas fa-exclamation-triangle"></i> Species select करें — accuracy बढ़ेगी</div>'}
+            <div style="margin-top: 4px;"><i class="fas fa-bolt" style="color: #f59e0b;"></i> ${measurements.processingTime || '?'}ms में process हुआ</div>
+            ${tipsHTML}
         `;
     }
 
