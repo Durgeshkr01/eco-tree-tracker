@@ -18,8 +18,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
     <!-- DeepLab v3: Semantic Segmentation — pixel-level tree detection, ignores person/bike/background -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/deeplab@0.2.1/dist/deeplab.min.js"></script>
-    <!-- MobileNet v2: Feature extraction for custom tree classifier (transfer learning) -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0/dist/mobilenet.min.js"></script>
     
     <!-- HTML2PDF Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -85,12 +83,8 @@
                         <i class="fas fa-circle-notch"></i> Tree Circumference (at Breast Height)
                     </label>
                     <div style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
-                        <button type="button" id="openCameraBtn" class="btn-secondary" style="flex: 1; padding: 10px 14px; font-size: 0.85rem; min-width: 120px;">
+                        <button type="button" id="openCameraBtn" class="btn-secondary" style="flex: 1; padding: 10px 14px; font-size: 0.85rem; min-width: 140px;">
                             <i class="fas fa-camera"></i> AI Camera
-                        </button>
-                        <button type="button" onclick="openTrainingModal()" class="btn-secondary" style="padding: 10px 14px; font-size: 0.85rem; background: rgba(139,92,246,0.1); color: #a78bfa; border-color: rgba(139,92,246,0.2);">
-                            <i class="fas fa-brain"></i> Train AI
-                            <span id="trainStatusBadge" style="display:none;font-size:9px;padding:2px 6px;border-radius:6px;margin-left:4px;"></span>
                         </button>
                         <button type="button" onclick="showCameraGuideAgain()" class="btn-secondary" style="padding: 10px 14px; font-size: 0.85rem; background: rgba(59,130,246,0.1); color: #60a5fa; border-color: rgba(59,130,246,0.2);">
                             <i class="fas fa-question-circle"></i> Guide
@@ -960,17 +954,7 @@
     <script src="real-world-measurement.js"></script>
     <script src="ml-tree-measurement.js"></script>
     <script src="advanced-ml-measurement.js"></script>
-    <script src="tree-trainer.js"></script>
     <script src="camera-handler.js"></script>
     <script src="camera-photo-guide.js"></script>
-    <script>
-        // Initialize trainer and show badge if model already trained
-        document.addEventListener('DOMContentLoaded', function() {
-            try {
-                initTrainer();
-                updateTrainingUI();
-            } catch(e) { console.warn('Trainer init:', e.message); }
-        });
-    </script>
 </body>
 </html>

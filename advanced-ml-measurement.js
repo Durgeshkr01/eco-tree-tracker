@@ -1216,27 +1216,6 @@ class AdvancedTreeML {
             }
             
             // ============================================================
-            // STEP 0-D: Custom Trained Classifier (if available)
-            // User-trained tree/not-tree model via transfer learning
-            // ============================================================
-            if (typeof treeTrainer !== 'undefined' && treeTrainer && treeTrainer.isModelTrained) {
-                try {
-                    var customPrediction = await treeTrainer.predict(canvas);
-                    if (customPrediction) {
-                        console.log('🧠 Custom classifier:', customPrediction);
-                        if (!customPrediction.isTree && customPrediction.notTreeConfidence > 75) {
-                            throw new Error('Custom AI model says: NOT A TREE (' + customPrediction.notTreeConfidence + '% confident)\n\n' +
-                                '🧠 Your trained model rejected this photo.\n' +
-                                '📸 Take a photo of a real tree outdoors.');
-                        }
-                    }
-                } catch (trainErr) {
-                    if (trainErr.message.indexOf('Custom AI model') !== -1) throw trainErr;
-                    console.warn('Custom classifier error (skipping):', trainErr.message);
-                }
-            }
-            
-            // ============================================================
             // STEP 1: Color validation (only if DeepLab didn't find tree)
             // ============================================================
             var validation = null;
