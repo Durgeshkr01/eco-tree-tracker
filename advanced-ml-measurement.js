@@ -153,31 +153,48 @@ class AdvancedTreeML {
                     return ['potted plant', 'vase'].indexOf(p.class) !== -1;
                 });
                 
-                // Only hard-block on clearly indoor/tech objects, not on person/vehicle
-                // (person can stand next to a tree — DeepLab will isolate tree pixels)
+                // Hard-block on indoor objects — these confirm we're NOT outside near a tree
                 var hardBlockObjects = [
                     'laptop', 'cell phone', 'keyboard', 'mouse', 'remote',
                     'tv', 'monitor', 'microwave', 'oven', 'refrigerator',
-                    'book', 'toothbrush', 'hair drier'
+                    'book', 'toothbrush', 'hair drier',
+                    'chair', 'couch', 'bed', 'dining table', 'toilet', 'sink',
+                    'teddy bear', 'clock', 'scissors',
+                    'cup', 'wine glass', 'fork', 'knife', 'spoon', 'bowl',
+                    'pizza', 'donut', 'cake', 'sandwich', 'hot dog'
                 ];
                 var isHardBlock = detectedNonTree.some(function(d) {
-                    return hardBlockObjects.indexOf(d.object) !== -1 && d.confidence > 70;
+                    return hardBlockObjects.indexOf(d.object) !== -1 && d.confidence > 40;
                 });
                 
-                if (isHardBlock) {
+                // Indoor scene detection: 2+ indoor objects = definitely NOT outdoor tree
+                var indoorObjects = ['chair', 'couch', 'bed', 'dining table', 'toilet', 'sink',
+                    'laptop', 'cell phone', 'keyboard', 'mouse', 'remote', 'tv', 'monitor',
+                    'microwave', 'oven', 'refrigerator', 'toaster', 'cup', 'bowl',
+                    'book', 'clock', 'vase', 'teddy bear'];
+                var indoorCount = detectedNonTree.filter(function(d) {
+                    return indoorObjects.indexOf(d.object) !== -1 && d.confidence > 30;
+                }).length;
+                var isIndoorScene = indoorCount >= 2;
+                
+                if (isHardBlock || isIndoorScene) {
+                    var reason = isIndoorScene 
+                        ? 'Indoor scene detected (' + indoorCount + ' indoor objects: ' + allDetected + '). This is NOT a tree!'
+                        : 'AI detected: "' + topDetection.object + '" (' + topDetection.confidence + '% confidence). This is NOT a tree!';
                     return {
                         isTree: false,
                         objects: detectedNonTree,
-                        errorMessage: 'AI detected: "' + topDetection.object + '" (' + topDetection.confidence + '% confidence). यह tree नहीं है। असली पेड़ की photo लें।'
+                        isIndoor: true,
+                        errorMessage: reason + '\n\n📸 Please take a photo of a REAL TREE outdoors.'
                     };
                 }
                 
-                // Person/vehicle/etc in frame — warn but let DeepLab try to find the tree
+                // Person/vehicle/bench in frame — warn but let DeepLab try to find the tree
                 return {
                     isTree: true,   // Allow DeepLab to make final decision
                     hasDistraction: true,
                     distractionObjects: detectedNonTree,
-                    warningMessage: 'Frame में ' + allDetected + ' भी है। DeepLab tree pixels को isolate कर रहा है...',
+                    warningMessage: 'Objects in frame: ' + allDetected + '. DeepLab will isolate tree pixels...',
                     objects: predictions
                 };
             }
@@ -837,11 +854,11 @@ class AdvancedTreeML {
 
     _getTreeValidationError(isTree, meetsColorCriteria, hasPerson, hasVehicleOrBuilding, supportCount) {
         if (isTree) return null;
-        if (hasPerson) return 'Tree नहीं मिला — Photo में person दिख रहा है। कृपया tree की photo लें। 📸';
-        if (hasVehicleOrBuilding) return 'Tree नहीं मिला — यह building/vehicle/object लग रहा है। Camera tree पर point करें। 🌳';
-        if (!meetsColorCriteria) return 'Tree नहीं मिला — Green leaves और brown trunk दोनों साफ दिखने chahiye। 🍃';
-        if (supportCount < 1) return 'यह tree नहीं लग रहा। Natural bark texture और tree को center में रखें। 🌲';
-        return 'Tree नहीं मिला। Tree से 2-3m दूर खड़े हों, trunk + leaves frame में हों। 📏';
+        if (hasPerson) return 'No tree found — A person is visible in the photo. Please take a photo of a tree. 📸';
+        if (hasVehicleOrBuilding) return 'No tree found — This looks like a building/vehicle/object. Point camera at a tree. 🌳';
+        if (!meetsColorCriteria) return 'No tree found — Both green leaves and brown trunk should be clearly visible. 🍃';
+        if (supportCount < 1) return 'This does not appear to be a tree. Center the tree with natural bark texture visible. 🌲';
+        return 'No tree found. Stand 2-3m away, ensure trunk + leaves are in frame. 📏';
     }
 
     // ==================== STRUCTURAL VALIDATION (Post-Detection) ====================
@@ -854,21 +871,21 @@ class AdvancedTreeML {
         var trunkWidthRatio = bounds.trunkWidthPx / imgW;
         console.log('Structure check: trunkWidthRatio=' + trunkWidthRatio.toFixed(3));
         if (trunkWidthRatio > 0.30) {
-            return { valid: false, reason: 'Detected object बहुत चौड़ा है (' + (trunkWidthRatio * 100).toFixed(0) + '% of frame). Tree से 2-3m दूर खड़े हों। 📏' };
+            return { valid: false, reason: 'Detected object is too wide (' + (trunkWidthRatio * 100).toFixed(0) + '% of frame). Stand 2-3m from the tree. 📏' };
         }
         
         // Check 2: Trunk must be narrow compared to overall bounding box
         var trunkToBboxRatio = bounds.trunkWidthPx / Math.max(1, bounds.width);
         console.log('Structure check: trunkToBboxRatio=' + trunkToBboxRatio.toFixed(3));
         if (trunkToBboxRatio > 0.60) {
-            return { valid: false, reason: 'पतला trunk detect नहीं हुआ। Tree का trunk पत्तियों से पतला होना chahiye। 🌲' };
+            return { valid: false, reason: 'No narrow trunk detected. The trunk should be thinner than the canopy. 🌲' };
         }
         
         // Check 3: Bounding box should be taller than wide (trees are vertical)
         var aspectRatio = bounds.height / Math.max(1, bounds.width);
         console.log('Structure check: aspectRatio=' + aspectRatio.toFixed(3));
         if (aspectRatio < 0.6) {
-            return { valid: false, reason: 'Detected object horizontal लग रहा है, लेकिन tree vertical होता है। पूरा trunk दिखना chahiye। 📐' };
+            return { valid: false, reason: 'Detected object appears horizontal, but trees are vertical. Full trunk should be visible. 📐' };
         }
         
         // Check 4: Verify vertical continuity — trunk pixels must form a continuous vertical column
@@ -914,7 +931,7 @@ class AdvancedTreeML {
             
             // Real tree trunk: continuous vertical brown band for at least 40% of scan height
             if (continuityRatio < 0.35) {
-                return { valid: false, reason: 'Continuous vertical trunk structure नहीं मिली। Tree trunk 2-3m से साफ दिखनी chahiye। 🌳' };
+                return { valid: false, reason: 'No continuous vertical trunk structure found. Tree trunk should be clearly visible from 2-3m. 🌳' };
             }
         }
         
@@ -943,7 +960,7 @@ class AdvancedTreeML {
             
             // Must have meaningful green above (canopy)
             if (greenInUpperPercent < 5) {
-                return { valid: false, reason: 'Trunk के ऊपर green canopy (पत्तियां) नहीं मिलीं। Tree + leaves frame में होने chahiye। 🍃' };
+                return { valid: false, reason: 'No green canopy found above the trunk. Tree + leaves should be in frame. 🍃' };
             }
         }
         
@@ -951,7 +968,7 @@ class AdvancedTreeML {
         var boundWidthRatio = bounds.width / imgW;
         var boundHeightRatio = bounds.height / imgH;
         if (boundWidthRatio > 0.85 && boundHeightRatio > 0.85) {
-            return { valid: false, reason: 'Detection पूरी image cover कर रहा है। Tree से और दूर खड़े हों (2-3m recommended). 📸' };
+            return { valid: false, reason: 'Detection covers the entire image. Stand further from the tree (2-3m recommended). 📸' };
         }
         
         return { valid: true, reason: null };
@@ -1171,21 +1188,52 @@ class AdvancedTreeML {
             }
             
             // ============================================================
-            // STEP 0-B: COCO-SSD check (only hard-block indoor/tech objects)
-            // If person+tree in frame: DeepLab handles it — we continue
+            // STEP 0-B: COCO-SSD check (block indoor objects)
             // ============================================================
             var aiDetection = await this.detectObjectsAI(canvas);
             console.log('AI Object Detection:', aiDetection);
             
             if (!aiDetection.isTree) {
-                // Hard block — indoor tech device detected, definitely not outdoors
-                const hindiMsg = aiDetection.errorMessage + '\n\n🇮🇳 यह tree नहीं है! कृपया असली पेड़ की photo लें।';
-                throw new Error(hindiMsg);
+                // Hard block — indoor object / indoor scene detected
+                throw new Error(aiDetection.errorMessage);
+            }
+            
+            // ============================================================
+            // STEP 0-C: DeepLab MANDATORY GATE — if DeepLab loaded but found
+            // almost no tree pixels, this is NOT a tree photo
+            // ============================================================
+            if (deeplabResult && deeplabResult.treePercent < 2) {
+                // DeepLab loaded & ran successfully but found <2% tree pixels
+                // This means the photo contains almost no tree — block it
+                throw new Error('No tree detected in this photo!\n\nDeepLab AI found only ' + 
+                    deeplabResult.treePercent.toFixed(1) + '% tree pixels.\n\n' +
+                    '📸 Tips:\n• Take the photo OUTDOORS near a real tree\n• Tree trunk should fill 30-80% of the frame\n• Ensure good lighting');
             }
             
             if (aiDetection.hasDistraction && aiDetection.warningMessage) {
                 console.log('ℹ️ Distraction warning:', aiDetection.warningMessage);
                 // Continue — DeepLab will isolate tree pixels from background
+            }
+            
+            // ============================================================
+            // STEP 0-D: Custom Trained Classifier (if available)
+            // User-trained tree/not-tree model via transfer learning
+            // ============================================================
+            if (typeof treeTrainer !== 'undefined' && treeTrainer && treeTrainer.isModelTrained) {
+                try {
+                    var customPrediction = await treeTrainer.predict(canvas);
+                    if (customPrediction) {
+                        console.log('🧠 Custom classifier:', customPrediction);
+                        if (!customPrediction.isTree && customPrediction.notTreeConfidence > 75) {
+                            throw new Error('Custom AI model says: NOT A TREE (' + customPrediction.notTreeConfidence + '% confident)\n\n' +
+                                '🧠 Your trained model rejected this photo.\n' +
+                                '📸 Take a photo of a real tree outdoors.');
+                        }
+                    }
+                } catch (trainErr) {
+                    if (trainErr.message.indexOf('Custom AI model') !== -1) throw trainErr;
+                    console.warn('Custom classifier error (skipping):', trainErr.message);
+                }
             }
             
             // ============================================================
@@ -1197,7 +1245,7 @@ class AdvancedTreeML {
                 console.log('Color validation:', validation);
                 
                 if (!validation.isTree) {
-                    const hindiMsg = validation.errorMessage + '\n\n🌳 पेड़ नहीं मिला! Tree का trunk और पत्तियां साफ दिखनी chahiye।';
+                    const hindiMsg = validation.errorMessage + '\n\n🌳 No tree found! The trunk and leaves should be clearly visible.';
                     throw new Error(hindiMsg);
                 }
             } else {
@@ -1232,7 +1280,7 @@ class AdvancedTreeML {
                 console.log('Color Segmentation: Green ' + segResult.greenPercent + '%, Trunk ' + segResult.trunkPercent + '%');
                 
                 if (parseFloat(segResult.greenPercent) < 1 && parseFloat(segResult.trunkPercent) < 1) {
-                    throw new Error('Tree साफ नहीं दिख रहा! Frame में tree 30-80% भरा होना chahiye और अच्छी रोशनी होनी chahiye। 📸');
+                    throw new Error('Tree not clearly visible! The tree should fill 30-80% of the frame with good lighting. 📸');
                 }
             }
             
@@ -1244,9 +1292,9 @@ class AdvancedTreeML {
             
             if (bounds.trunkWidthPx < 5) {
                 if (usingDeepLab) {
-                    throw new Error('DeepLab ने tree detect किया लेकिन trunk width नहीं मिली! 💡\n• Tree का trunk camera के center में रखें\n• Trunk पर direct sunlight होनी चाहिए\n• Tree से 2-3 मीटर दूर खड़े रहें');
+                    throw new Error('DeepLab detected a tree but could not find trunk width! 💡\n• Keep the tree trunk in the center of the camera\n• Ensure direct sunlight on the trunk\n• Stand 2-3 meters away from the tree');
                 }
-                throw new Error('Trunk साफ detect नहीं हुआ! 💡 सुझाव:\n• Trunk पर अच्छी रोशनी होनी chahiye\n• Tree से 2-3 मीटर दूर खड़े रहें\n• Camera को सीधा (level) रखें');
+                throw new Error('Trunk not detected clearly! 💡 Tips:\n• Ensure good lighting on the trunk\n• Stand 2-3 meters away from the tree\n• Keep the camera level and straight');
             }
             
             // Step 4b: Structural validation — skip strict checks if DeepLab confirmed tree
@@ -1255,7 +1303,7 @@ class AdvancedTreeML {
                 // DeepLab already confirmed these are tree pixels — only check extreme cases
                 var trunkWidthRatio = bounds.trunkWidthPx / canvas.width;
                 if (trunkWidthRatio > 0.50) {
-                    structureCheck = { valid: false, reason: 'Trunk बहुत बड़ा दिख रहा है। Tree से 2-3m दूर खड़े हों। 📏' };
+                    structureCheck = { valid: false, reason: 'Trunk appears too large. Stand 2-3m away from the tree. 📏' };
                 } else {
                     structureCheck = { valid: true };
                 }
@@ -1292,13 +1340,19 @@ class AdvancedTreeML {
             // Step 7: Final validation
             var circumference = parseFloat(measurements.circumference);
             if (circumference < 5 || circumference > 700) {
-                throw new Error('Detected circumference (' + circumference + ' cm) असंभव है! 🔄 फिर से photo लें:\n• Tree से 2-3 मीटर दूर\n• Camera छाती की ऊंचाई पर\n• Trunk frame के center में');
+                throw new Error('Detected circumference (' + circumference + ' cm) is impossible! 🔄 Retake the photo:\n• Stand 2-3 meters from the tree\n• Hold camera at chest height\n• Keep trunk in the center of the frame');
             }
             
             var elapsed = (performance.now() - startTime).toFixed(0);
             console.log('✅ Analysis complete in ' + elapsed + 'ms');
             console.log('Circumference: ' + measurements.circumference + ' cm, Confidence: ' + measurements.confidence + '%');
             console.log('Segmentation source: ' + (usingDeepLab ? 'DeepLab ADE20K 🌳' : 'Color-based fallback'));
+            
+            // Calculate additional measurements
+            var circumferenceVal = parseFloat(measurements.circumference);
+            var diameterVal = Math.round((circumferenceVal / Math.PI) * 10) / 10;
+            var girthVal = circumferenceVal; // Girth = circumference at breast height
+            var heightVal = parseFloat(measurements.height) || this._estimateHeightFromCanvas(canvas, bounds.breastHeightY);
             
             // Add DeepLab badge to method details if used
             if (usingDeepLab && measurements.methodDetails) {
@@ -1311,9 +1365,11 @@ class AdvancedTreeML {
             }
             
             return {
-                height: measurements.height,
+                height: heightVal,
                 trunkWidth: measurements.trunkWidth,
                 circumference: measurements.circumference,
+                diameter: diameterVal,
+                girth: girthVal.toFixed(1),
                 estimatedDistance: measurements.estimatedDistance,
                 confidence: measurements.confidence,
                 methodDetails: measurements.methodDetails,
@@ -1324,7 +1380,8 @@ class AdvancedTreeML {
                 species: selectedSpecies,
                 processingTime: elapsed,
                 deeplabUsed: usingDeepLab,
-                deeplabTreePercent: usingDeepLab ? deeplabResult.treePercent.toFixed(1) : null
+                deeplabTreePercent: usingDeepLab ? deeplabResult.treePercent.toFixed(1) : null,
+                isManual: false
             };
             
         } catch (error) {
@@ -1469,6 +1526,183 @@ class AdvancedTreeML {
             '5. Ensure good lighting on trunk\n' +
             '6. Capture - circumference auto-fills!\n\n' +
             'Tips: Select correct species, daylight is best, include full trunk.';
+    }
+
+    // ==================== MANUAL TRUNK SELECTION ====================
+    // User taps two points on trunk edges → calculate real-world measurements
+    
+    manualMeasureFromPoints(canvas, point1, point2, imageFile) {
+        var trunkWidthPx = Math.abs(point2.x - point1.x);
+        var midY = (point1.y + point2.y) / 2;
+        var trunkCenterX = (point1.x + point2.x) / 2;
+        
+        if (trunkWidthPx < 3) {
+            throw new Error('Points are too close! Tap the LEFT and RIGHT edges of the trunk.');
+        }
+        
+        // Estimate distance from camera
+        var imgW = canvas.width;
+        var imgH = canvas.height;
+        var fov = this.cameraParams.fovHorizontal || 65;
+        var fovRad = (fov * Math.PI) / 180;
+        
+        // Default assumed distance (if no reference)
+        var distanceCm = this.DEFAULT_DISTANCE_CM;
+        
+        // Calculate real-world trunk width using pinhole camera model
+        // trunkRealWidth = (trunkWidthPx / imgW) * 2 * distance * tan(fov/2)
+        var fieldOfViewWidth = 2 * distanceCm * Math.tan(fovRad / 2);
+        var trunkWidthCm = (trunkWidthPx / imgW) * fieldOfViewWidth;
+        
+        // Circumference from diameter (assuming roughly circular trunk)
+        var circumferenceCm = trunkWidthCm * Math.PI;
+        
+        // Height estimation: if user selected breast height area, 
+        // estimate full tree height from image proportions
+        var estimatedHeightCm = this._estimateHeightFromCanvas(canvas, midY);
+        
+        // Get species info for calibration
+        var selectedSpecies = null;
+        try {
+            var treeSpeciesSelect = document.getElementById('treeSpecies');
+            var treeSearchInput = document.getElementById('treeSearch');
+            if (treeSpeciesSelect && treeSpeciesSelect.value) {
+                var idx = parseInt(treeSpeciesSelect.value);
+                if (!isNaN(idx) && typeof treeSpeciesData !== 'undefined' && treeSpeciesData[idx]) {
+                    selectedSpecies = treeSpeciesData[idx].common || treeSpeciesData[idx].name;
+                }
+            } else if (treeSearchInput && treeSearchInput.value) {
+                selectedSpecies = treeSearchInput.value;
+            }
+        } catch(e) {}
+        
+        // Species calibration
+        if (selectedSpecies) {
+            var speciesData = this._getSpeciesCircumference(selectedSpecies);
+            if (circumferenceCm < speciesData.min * 0.5) {
+                circumferenceCm = Math.max(circumferenceCm, speciesData.min * 0.7);
+            } else if (circumferenceCm > speciesData.max * 1.5) {
+                circumferenceCm = Math.min(circumferenceCm, speciesData.max * 1.2);
+            }
+        }
+        
+        circumferenceCm = Math.round(circumferenceCm * 10) / 10;
+        var diameterCm = Math.round((circumferenceCm / Math.PI) * 10) / 10;
+        
+        // Draw manual selection overlay
+        this._drawManualOverlay(canvas, point1, point2, circumferenceCm, diameterCm, estimatedHeightCm);
+        
+        return {
+            height: estimatedHeightCm,
+            trunkWidth: diameterCm,
+            circumference: circumferenceCm.toFixed(1),
+            diameter: diameterCm,
+            girth: circumferenceCm.toFixed(1),
+            estimatedDistance: (distanceCm / 100).toFixed(1),
+            confidence: 70, // Manual selection is moderately reliable
+            methodDetails: [{
+                name: '✋ Manual Selection',
+                value: circumferenceCm,
+                weight: 1,
+                label: 'User-selected trunk edges (' + trunkWidthPx + 'px width)'
+            }],
+            realWorldData: {
+                measurementBasis: 'Manual trunk edge selection',
+                estimatedDistance: distanceCm / 100
+            },
+            accuracyTips: [
+                'For better accuracy, place a reference object (coin/card) on the trunk',
+                'Take the photo at chest height (1.37m) for standard DBH measurement'
+            ],
+            bounds: {
+                x: Math.min(point1.x, point2.x) - 20,
+                y: 0,
+                width: trunkWidthPx + 40,
+                height: imgH,
+                trunkLeft: Math.min(point1.x, point2.x),
+                trunkRight: Math.max(point1.x, point2.x),
+                trunkCenterX: trunkCenterX,
+                trunkWidthPx: trunkWidthPx,
+                breastHeightY: midY
+            },
+            validation: null,
+            species: selectedSpecies,
+            processingTime: '0',
+            deeplabUsed: false,
+            deeplabTreePercent: null,
+            isManual: true
+        };
+    }
+    
+    _estimateHeightFromCanvas(canvas, measurementY) {
+        // Rough height estimation based on where measurement was taken
+        // Assumes photo captures most of the tree
+        var imgH = canvas.height;
+        
+        // If measurement point is at ~65% of image height (typical breast height)
+        // and camera was held at ~1.37m, estimate proportional height
+        var fractionFromTop = measurementY / imgH;
+        
+        // Use the breast height reference: if measurement is at fractionFromTop,
+        // we assume that point ≈ 1.37m high, and top of image ≈ tree top
+        if (fractionFromTop > 0.1 && fractionFromTop < 0.95) {
+            var breastHeightCm = 137;
+            var estimatedTreeHeight = breastHeightCm / fractionFromTop;
+            return Math.round(estimatedTreeHeight);
+        }
+        
+        return 500; // Default estimate
+    }
+    
+    _drawManualOverlay(canvas, point1, point2, circumference, diameter, height) {
+        var context = canvas.getContext('2d');
+        var midY = (point1.y + point2.y) / 2;
+        var leftX = Math.min(point1.x, point2.x);
+        var rightX = Math.max(point1.x, point2.x);
+        
+        // Draw measurement line
+        context.strokeStyle = '#e74c3c';
+        context.lineWidth = 3;
+        context.setLineDash([]);
+        context.beginPath();
+        context.moveTo(leftX - 10, midY);
+        context.lineTo(rightX + 10, midY);
+        context.stroke();
+        
+        // Arrow heads
+        this._drawArrowHead(context, leftX - 10, midY, 'right', 10);
+        this._drawArrowHead(context, rightX + 10, midY, 'left', 10);
+        
+        // Point markers
+        [point1, point2].forEach(function(pt) {
+            context.fillStyle = '#e74c3c';
+            context.beginPath();
+            context.arc(pt.x, pt.y, 8, 0, 2 * Math.PI);
+            context.fill();
+            context.strokeStyle = 'white';
+            context.lineWidth = 2;
+            context.beginPath();
+            context.arc(pt.x, pt.y, 8, 0, 2 * Math.PI);
+            context.stroke();
+        });
+        
+        // Labels
+        this._drawPillLabel(context, 'MANUAL MEASUREMENT', 10, 32, 'rgba(142, 68, 173, 0.9)');
+        this._drawPillLabel(context, 'Circumference: ' + circumference + ' cm', leftX, midY + 30, '#c0392b');
+        this._drawPillLabel(context, 'Diameter: ' + diameter + ' cm', leftX, midY + 56, '#2980b9');
+        this._drawPillLabel(context, 'Est. Height: ' + height + ' cm', leftX, midY - 30, '#27ae60');
+        
+        // Center marker
+        var cx = (leftX + rightX) / 2;
+        context.strokeStyle = '#e74c3c';
+        context.lineWidth = 2;
+        context.beginPath();
+        context.arc(cx, midY, 6, 0, 2 * Math.PI);
+        context.stroke();
+        context.fillStyle = '#e74c3c';
+        context.beginPath();
+        context.arc(cx, midY, 3, 0, 2 * Math.PI);
+        context.fill();
     }
 }
 

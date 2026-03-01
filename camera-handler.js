@@ -1,8 +1,12 @@
 // Camera Handler for Tree Measurement
 // Uses native camera (file input) → ML analysis
+// Supports: Auto AI detection + Manual trunk selection
 
 let mlMeasurement = null;
 let advancedML = null;
+let manualSelectionMode = false;
+let manualPoints = [];
+let originalImageData = null;
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
@@ -39,6 +43,8 @@ function initializeCameraHandlers() {
         // Show modal with preview
         cameraModal.style.display = 'flex';
         resetModalUI();
+        manualSelectionMode = false;
+        manualPoints = [];
 
         const reader = new FileReader();
         reader.onload = async (evt) => {
@@ -56,22 +62,27 @@ function initializeCameraHandlers() {
                 const ctx = resultCanvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, w, h);
                 resultCanvas.style.display = 'block';
+                
+                // Save original image for manual mode redraw
+                originalImageData = ctx.getImageData(0, 0, w, h);
 
-                // Start analysis — pass original file for EXIF extraction
-                await analyzePhoto(resultCanvas, file);
+                // Show mode selector: Auto or Manual
+                showModeSelector(resultCanvas, file, img);
             };
             img.src = evt.target.result;
         };
         reader.readAsDataURL(file);
     });
 
-    // ===== Analyze the photo =====
+    // ===== Analyze the photo (Auto mode) =====
     async function analyzePhoto(canvas, imageFile) {
         const statusEl = document.getElementById('analysisStatus');
         const errorEl = document.getElementById('analysisError');
         const errorText = document.getElementById('analysisErrorText');
         const resultsEl = document.getElementById('measurementResults');
         const retakeTopEl = document.getElementById('retakeTopBtn');
+        const modeSelectorEl = document.getElementById('modeSelector');
+        if (modeSelectorEl) modeSelectorEl.style.display = 'none';
 
         statusEl.style.display = 'block';
         errorEl.style.display = 'none';
@@ -100,16 +111,8 @@ function initializeCameraHandlers() {
             // Draw detection overlay on canvas
             advancedML.drawDetectionOverlay(canvas, measurements.bounds, measurements);
 
-            // Fill results - only Circumference is used in calculations
-            document.getElementById('detectedCircumference').textContent = measurements.circumference;
-            document.getElementById('detectedConfidence').textContent = measurements.confidence;
-
-            statusEl.style.display = 'none';
-            resultsEl.style.display = 'block';
-            retakeTopEl.style.display = 'inline-block';
-
-            // Add method details
-            addMethodInfo(resultsEl, measurements);
+            // Show full results
+            showFullResults(measurements);
 
         } catch (error) {
             console.error('Analysis error:', error);
@@ -117,7 +120,208 @@ function initializeCameraHandlers() {
             errorEl.style.display = 'block';
             errorText.textContent = error.message || 'Could not analyze tree. Please retake photo.';
             retakeTopEl.style.display = 'none';
+            
+            // Show manual mode option on error
+            const manualFallbackEl = document.getElementById('manualFallbackBtn');
+            if (manualFallbackEl) manualFallbackEl.style.display = 'inline-block';
         }
+    }
+    
+    // ===== Show mode selector (Auto vs Manual) =====
+    function showModeSelector(canvas, file, img) {
+        let modeSelectorEl = document.getElementById('modeSelector');
+        if (!modeSelectorEl) {
+            modeSelectorEl = document.createElement('div');
+            modeSelectorEl.id = 'modeSelector';
+            modeSelectorEl.style.cssText = 'padding: 12px 16px; text-align: center;';
+            const controlsDiv = document.querySelector('.camera-controls');
+            if (controlsDiv) {
+                controlsDiv.parentNode.insertBefore(modeSelectorEl, controlsDiv);
+            } else {
+                document.getElementById('photoPreviewSection').appendChild(modeSelectorEl);
+            }
+        }
+        
+        modeSelectorEl.innerHTML = `
+            <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                <button id="autoDetectBtn" type="button" style="flex:1; min-width:140px; padding: 14px 20px; background: linear-gradient(135deg, #059669, #10b981); color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(16,185,129,0.3);">
+                    <i class="fas fa-robot"></i> Auto Detect
+                </button>
+                <button id="manualSelectBtn" type="button" style="flex:1; min-width:140px; padding: 14px 20px; background: linear-gradient(135deg, #7c3aed, #8b5cf6); color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(139,92,246,0.3);">
+                    <i class="fas fa-hand-pointer"></i> Manual Select
+                </button>
+            </div>
+            <div style="font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 8px;">
+                Auto = AI detects tree automatically &nbsp;|&nbsp; Manual = Tap trunk edges yourself
+            </div>
+        `;
+        modeSelectorEl.style.display = 'block';
+        
+        // Auto detect button
+        document.getElementById('autoDetectBtn').addEventListener('click', async () => {
+            modeSelectorEl.style.display = 'none';
+            await analyzePhoto(canvas, file);
+        });
+        
+        // Manual select button
+        document.getElementById('manualSelectBtn').addEventListener('click', () => {
+            modeSelectorEl.style.display = 'none';
+            enterManualMode(canvas, file);
+        });
+    }
+    
+    // ===== Enter manual trunk selection mode =====
+    function enterManualMode(canvas, imageFile) {
+        manualSelectionMode = true;
+        manualPoints = [];
+        
+        // Show instruction banner
+        let instructionEl = document.getElementById('manualInstruction');
+        if (!instructionEl) {
+            instructionEl = document.createElement('div');
+            instructionEl.id = 'manualInstruction';
+            const controlsDiv = document.querySelector('.camera-controls');
+            if (controlsDiv) {
+                controlsDiv.parentNode.insertBefore(instructionEl, controlsDiv);
+            }
+        }
+        instructionEl.style.cssText = 'padding: 12px 16px; text-align: center; background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3); border-radius: 10px; margin: 8px 16px;';
+        instructionEl.innerHTML = `
+            <div style="color: #a78bfa; font-weight: 700; font-size: 15px; margin-bottom: 6px;">
+                <i class="fas fa-hand-pointer"></i> Manual Trunk Selection
+            </div>
+            <div style="color: rgba(255,255,255,0.7); font-size: 13px;">
+                <span id="manualStep">Step 1: Tap the <b>LEFT edge</b> of the trunk at chest height</span>
+            </div>
+            <div style="margin-top: 8px;">
+                <span id="pointCount" style="color: #a78bfa; font-size: 12px;">Points: 0/2</span>
+                <button id="resetPointsBtn" type="button" style="margin-left: 12px; padding: 4px 12px; background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; cursor: pointer; font-size: 11px;">
+                    <i class="fas fa-undo"></i> Reset
+                </button>
+            </div>
+        `;
+        instructionEl.style.display = 'block';
+        
+        // Reset points button
+        document.getElementById('resetPointsBtn').addEventListener('click', () => {
+            manualPoints = [];
+            if (originalImageData) {
+                canvas.getContext('2d').putImageData(originalImageData, 0, 0);
+            }
+            document.getElementById('manualStep').innerHTML = 'Step 1: Tap the <b>LEFT edge</b> of the trunk at chest height';
+            document.getElementById('pointCount').textContent = 'Points: 0/2';
+        });
+        
+        // Canvas touch/click handler for manual points
+        function handleCanvasClick(e) {
+            if (!manualSelectionMode) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            
+            let clientX, clientY;
+            if (e.touches && e.touches[0]) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            const x = (clientX - rect.left) * scaleX;
+            const y = (clientY - rect.top) * scaleY;
+            
+            manualPoints.push({ x: Math.round(x), y: Math.round(y) });
+            
+            // Draw point marker
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = manualPoints.length === 1 ? '#3b82f6' : '#ef4444';
+            ctx.beginPath();
+            ctx.arc(x, y, 10, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(x, y, 10, 0, 2 * Math.PI);
+            ctx.stroke();
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(manualPoints.length === 1 ? 'L' : 'R', x, y + 4);
+            
+            document.getElementById('pointCount').textContent = 'Points: ' + manualPoints.length + '/2';
+            
+            if (manualPoints.length === 1) {
+                document.getElementById('manualStep').innerHTML = 'Step 2: Now tap the <b>RIGHT edge</b> of the trunk';
+            }
+            
+            if (manualPoints.length >= 2) {
+                // Both points selected — calculate measurements
+                manualSelectionMode = false;
+                canvas.removeEventListener('click', handleCanvasClick);
+                canvas.removeEventListener('touchend', handleCanvasTouch);
+                
+                document.getElementById('manualStep').innerHTML = '<i class="fas fa-check-circle" style="color:#10b981;"></i> Both edges selected! Calculating...';
+                
+                try {
+                    // Restore original image before drawing overlay
+                    if (originalImageData) {
+                        ctx.putImageData(originalImageData, 0, 0);
+                    }
+                    
+                    const measurements = advancedML.manualMeasureFromPoints(canvas, manualPoints[0], manualPoints[1], imageFile);
+                    
+                    // Show full results
+                    showFullResults(measurements);
+                    
+                    if (instructionEl) instructionEl.style.display = 'none';
+                    
+                } catch (err) {
+                    document.getElementById('manualStep').innerHTML = '<i class="fas fa-exclamation-triangle" style="color:#f87171;"></i> ' + err.message;
+                }
+            }
+        }
+        
+        function handleCanvasTouch(e) {
+            e.preventDefault();
+            handleCanvasClick(e);
+        }
+        
+        canvas.addEventListener('click', handleCanvasClick);
+        canvas.addEventListener('touchend', handleCanvasTouch, { passive: false });
+        
+        // Change cursor
+        canvas.style.cursor = 'crosshair';
+    }
+    
+    // ===== Show full results with all measurements =====
+    function showFullResults(measurements) {
+        const statusEl = document.getElementById('analysisStatus');
+        const resultsEl = document.getElementById('measurementResults');
+        const retakeTopEl = document.getElementById('retakeTopBtn');
+        
+        statusEl.style.display = 'none';
+        resultsEl.style.display = 'block';
+        retakeTopEl.style.display = 'inline-block';
+        
+        // Fill primary circumference
+        document.getElementById('detectedCircumference').textContent = measurements.circumference;
+        document.getElementById('detectedConfidence').textContent = measurements.confidence;
+        
+        // Fill advanced measurements
+        const diameterEl = document.getElementById('detectedDiameter');
+        const girthEl = document.getElementById('detectedGirth');
+        const heightEl = document.getElementById('detectedHeight');
+        const trunkWidthEl = document.getElementById('detectedTrunkWidth');
+        
+        if (diameterEl) diameterEl.textContent = measurements.diameter || (parseFloat(measurements.circumference) / Math.PI).toFixed(1);
+        if (girthEl) girthEl.textContent = measurements.girth || measurements.circumference;
+        if (heightEl) heightEl.textContent = measurements.height || '-';
+        if (trunkWidthEl) trunkWidthEl.textContent = measurements.trunkWidth || '-';
+        
+        // Add method details info
+        addMethodInfo(resultsEl, measurements);
     }
 
     // ===== Add method info under results =====
@@ -190,6 +394,19 @@ function initializeCameraHandlers() {
 
     retakeBtn.addEventListener('click', handleRetake);
     retakeTopBtn.addEventListener('click', handleRetake);
+    
+    // ===== Manual fallback from error =====
+    const manualFallbackBtn = document.getElementById('manualFallbackBtn');
+    if (manualFallbackBtn) {
+        manualFallbackBtn.addEventListener('click', () => {
+            document.getElementById('analysisError').style.display = 'none';
+            manualFallbackBtn.style.display = 'none';
+            if (originalImageData && resultCanvas) {
+                resultCanvas.getContext('2d').putImageData(originalImageData, 0, 0);
+            }
+            enterManualMode(resultCanvas, null);
+        });
+    }
 
     // ===== Close modal =====
     closeCameraBtn.addEventListener('click', () => {
@@ -261,8 +478,16 @@ function initializeCameraHandlers() {
         document.getElementById('measurementResults').style.display = 'none';
         document.getElementById('retakeTopBtn').style.display = 'none';
         resultCanvas.style.display = 'none';
+        resultCanvas.style.cursor = 'default';
+        manualSelectionMode = false;
+        manualPoints = [];
+        originalImageData = null;
         const extraInfo = document.querySelector('.extra-measurement-info');
         if (extraInfo) extraInfo.remove();
+        const modeSelector = document.getElementById('modeSelector');
+        if (modeSelector) modeSelector.style.display = 'none';
+        const manualInstruction = document.getElementById('manualInstruction');
+        if (manualInstruction) manualInstruction.style.display = 'none';
     }
 }
 

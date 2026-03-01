@@ -18,6 +18,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
     <!-- DeepLab v3: Semantic Segmentation — pixel-level tree detection, ignores person/bike/background -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/deeplab@0.2.1/dist/deeplab.min.js"></script>
+    <!-- MobileNet v2: Feature extraction for custom tree classifier (transfer learning) -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0/dist/mobilenet.min.js"></script>
     
     <!-- HTML2PDF Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -83,8 +85,12 @@
                         <i class="fas fa-circle-notch"></i> Tree Circumference (at Breast Height)
                     </label>
                     <div style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
-                        <button type="button" id="openCameraBtn" class="btn-secondary" style="flex: 1; padding: 10px 14px; font-size: 0.85rem; min-width: 140px;">
+                        <button type="button" id="openCameraBtn" class="btn-secondary" style="flex: 1; padding: 10px 14px; font-size: 0.85rem; min-width: 120px;">
                             <i class="fas fa-camera"></i> AI Camera
+                        </button>
+                        <button type="button" onclick="openTrainingModal()" class="btn-secondary" style="padding: 10px 14px; font-size: 0.85rem; background: rgba(139,92,246,0.1); color: #a78bfa; border-color: rgba(139,92,246,0.2);">
+                            <i class="fas fa-brain"></i> Train AI
+                            <span id="trainStatusBadge" style="display:none;font-size:9px;padding:2px 6px;border-radius:6px;margin-left:4px;"></span>
                         </button>
                         <button type="button" onclick="showCameraGuideAgain()" class="btn-secondary" style="padding: 10px 14px; font-size: 0.85rem; background: rgba(59,130,246,0.1); color: #60a5fa; border-color: rgba(59,130,246,0.2);">
                             <i class="fas fa-question-circle"></i> Guide
@@ -853,9 +859,14 @@
                 <div id="analysisError" style="display: none; text-align: center; padding: 16px; margin: 10px 16px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 12px;">
                     <i class="fas fa-exclamation-triangle" style="color: #f87171; font-size: 20px; display: block; margin-bottom: 8px;"></i>
                     <p id="analysisErrorText" style="color: #f87171; font-weight: 600; margin-bottom: 8px;"></p>
-                    <button id="retakeBtn" type="button" class="btn-secondary" style="background: rgba(245,158,11,0.15); color: #fbbf24; border-color: rgba(245,158,11,0.2); padding: 10px 24px; border-radius: 10px; cursor: pointer; font-weight: 600;">
-                        <i class="fas fa-camera"></i> Retake Photo
-                    </button>
+                    <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+                        <button id="retakeBtn" type="button" class="btn-secondary" style="background: rgba(245,158,11,0.15); color: #fbbf24; border-color: rgba(245,158,11,0.2); padding: 10px 24px; border-radius: 10px; cursor: pointer; font-weight: 600;">
+                            <i class="fas fa-camera"></i> Retake Photo
+                        </button>
+                        <button id="manualFallbackBtn" type="button" style="display: none; background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.2); padding: 10px 24px; border-radius: 10px; cursor: pointer; font-weight: 600;">
+                            <i class="fas fa-hand-pointer"></i> Try Manual Select
+                        </button>
+                    </div>
                 </div>
 
                 <div class="camera-controls" style="padding: 12px 16px;">
@@ -883,6 +894,27 @@
                             <span style="font-size: 1.4em; color: rgba(255,255,255,0.8);">cm</span>
                             <div style="font-size:11px; color:rgba(16,185,129,0.6); margin-top:4px;"><i class="fas fa-hand-pointer"></i> Tap value to auto-fill</div>
                         </p>
+                        
+                        <!-- Advanced Measurements Grid -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
+                            <div style="padding: 10px; background: rgba(59,130,246,0.08); border-radius: 10px; border: 1px solid rgba(59,130,246,0.15);">
+                                <div style="font-size: 11px; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.5px;"><i class="fas fa-arrows-alt-h"></i> Diameter</div>
+                                <div style="font-size: 1.5em; font-weight: 700; color: #60a5fa;"><span id="detectedDiameter">-</span> <span style="font-size: 0.5em; color: rgba(255,255,255,0.5);">cm</span></div>
+                            </div>
+                            <div style="padding: 10px; background: rgba(245,158,11,0.08); border-radius: 10px; border: 1px solid rgba(245,158,11,0.15);">
+                                <div style="font-size: 11px; color: #fcd34d; text-transform: uppercase; letter-spacing: 0.5px;"><i class="fas fa-ring"></i> Girth</div>
+                                <div style="font-size: 1.5em; font-weight: 700; color: #fbbf24;"><span id="detectedGirth">-</span> <span style="font-size: 0.5em; color: rgba(255,255,255,0.5);">cm</span></div>
+                            </div>
+                            <div style="padding: 10px; background: rgba(16,185,129,0.08); border-radius: 10px; border: 1px solid rgba(16,185,129,0.15);">
+                                <div style="font-size: 11px; color: #6ee7b7; text-transform: uppercase; letter-spacing: 0.5px;"><i class="fas fa-arrows-alt-v"></i> Height</div>
+                                <div style="font-size: 1.5em; font-weight: 700; color: #34d399;"><span id="detectedHeight">-</span> <span style="font-size: 0.5em; color: rgba(255,255,255,0.5);">cm</span></div>
+                            </div>
+                            <div style="padding: 10px; background: rgba(139,92,246,0.08); border-radius: 10px; border: 1px solid rgba(139,92,246,0.15);">
+                                <div style="font-size: 11px; color: #c4b5fd; text-transform: uppercase; letter-spacing: 0.5px;"><i class="fas fa-ruler-horizontal"></i> Trunk Width</div>
+                                <div style="font-size: 1.5em; font-weight: 700; color: #a78bfa;"><span id="detectedTrunkWidth">-</span> <span style="font-size: 0.5em; color: rgba(255,255,255,0.5);">cm</span></div>
+                            </div>
+                        </div>
+                        
                         <p style="margin-top: 16px;"><strong><i class="fas fa-bullseye" style="color:#f59e0b;"></i> Confidence</strong> <span id="detectedConfidence" style="color: #fbbf24; font-size: 1.2em; font-weight: 600;">-</span>%</p>
                     </div>
                     <button id="useMeasurementBtn" type="button" class="btn-primary use-measurement-btn">
@@ -928,7 +960,17 @@
     <script src="real-world-measurement.js"></script>
     <script src="ml-tree-measurement.js"></script>
     <script src="advanced-ml-measurement.js"></script>
+    <script src="tree-trainer.js"></script>
     <script src="camera-handler.js"></script>
     <script src="camera-photo-guide.js"></script>
+    <script>
+        // Initialize trainer and show badge if model already trained
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                initTrainer();
+                updateTrainingUI();
+            } catch(e) { console.warn('Trainer init:', e.message); }
+        });
+    </script>
 </body>
 </html>
