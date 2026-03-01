@@ -6,6 +6,7 @@ class AdvancedTreeML {
     constructor() {
         this.isModelLoaded = false;
         this.cocoModel = null;       // COCO-SSD AI object detection model
+        this.deeplabModel = null;    // DeepLab v3 semantic segmentation (tree pixel detection)
         this.videoStream = null;
         this.capturedImage = null;
         
@@ -66,8 +67,24 @@ class AdvancedTreeML {
                 console.log('COCO-SSD model loaded — can detect 80+ object types');
             }
             
+            // Load DeepLab v3 ADE20K — pixel-level semantic segmentation
+            // ADE20K class 5 = "tree", 9 = "grass", 17 = "plant"
+            // This lets us detect tree pixels even when person/bike is in frame
+            if (!this.deeplabModel && typeof deeplab !== 'undefined') {
+                console.log('Loading DeepLab ADE20K segmentation model...');
+                try {
+                    this.deeplabModel = await deeplab.load({
+                        base: 'ade20k',
+                        quantizationBytes: 2   // Compressed weights — faster download
+                    });
+                    console.log('✅ DeepLab ADE20K loaded — tree pixel segmentation ACTIVE');
+                } catch (dlErr) {
+                    console.warn('DeepLab load failed, will use color-based fallback:', dlErr.message);
+                }
+            }
+            
             this.isModelLoaded = true;
-            console.log('Advanced CV + AI detection pipeline ready');
+            console.log('Advanced CV + AI + DeepLab detection pipeline ready');
             return true;
         } catch (error) {
             console.warn('Model init warning:', error);
@@ -130,10 +147,38 @@ class AdvancedTreeML {
                 var topDetection = detectedNonTree[0];
                 var allDetected = detectedNonTree.map(function(d) { return d.object; }).join(', ');
                 
+                // Only block if NO tree/plant signal at all
+                // If person/bike is in frame BUT tree might also be there — let DeepLab decide
+                var hasAnyPlantSignal = hasPlant || predictions.some(function(p) {
+                    return ['potted plant', 'vase'].indexOf(p.class) !== -1;
+                });
+                
+                // Only hard-block on clearly indoor/tech objects, not on person/vehicle
+                // (person can stand next to a tree — DeepLab will isolate tree pixels)
+                var hardBlockObjects = [
+                    'laptop', 'cell phone', 'keyboard', 'mouse', 'remote',
+                    'tv', 'monitor', 'microwave', 'oven', 'refrigerator',
+                    'book', 'toothbrush', 'hair drier'
+                ];
+                var isHardBlock = detectedNonTree.some(function(d) {
+                    return hardBlockObjects.indexOf(d.object) !== -1 && d.confidence > 70;
+                });
+                
+                if (isHardBlock) {
+                    return {
+                        isTree: false,
+                        objects: detectedNonTree,
+                        errorMessage: 'AI detected: "' + topDetection.object + '" (' + topDetection.confidence + '% confidence). यह tree नहीं है। असली पेड़ की photo लें।'
+                    };
+                }
+                
+                // Person/vehicle/etc in frame — warn but let DeepLab try to find the tree
                 return {
-                    isTree: false,
-                    objects: detectedNonTree,
-                    errorMessage: 'AI detected: "' + topDetection.object + '" (' + topDetection.confidence + '% confidence). This is not a tree. Please photograph an actual tree.'
+                    isTree: true,   // Allow DeepLab to make final decision
+                    hasDistraction: true,
+                    distractionObjects: detectedNonTree,
+                    warningMessage: 'Frame में ' + allDetected + ' भी है। DeepLab tree pixels को isolate कर रहा है...',
+                    objects: predictions
                 };
             }
             
@@ -142,6 +187,59 @@ class AdvancedTreeML {
         } catch (error) {
             console.warn('COCO-SSD detection error:', error);
             return { isTree: true, objects: [] };
+        }
+    }
+
+    // ==================== DEEPLAB SEMANTIC SEGMENTATION ====================
+    // Uses ADE20K model: class 5=tree, 9=grass, 17=plant
+    // Gives pixel-level tree mask — person/bike/background are excluded
+    
+    async segmentWithDeepLab(canvas) {
+        if (!this.deeplabModel) {
+            console.warn('DeepLab not loaded, skipping semantic segmentation');
+            return null;
+        }
+        
+        try {
+            console.log('🌳 Running DeepLab semantic segmentation...');
+            const result = await this.deeplabModel.segment(canvas);
+            const { segmentationMap, height, width } = result;
+            
+            // ADE20K class indices (0=background, 1=wall, 2=building, 3=sky, 4=floor,
+            //   5=tree, 6=ceiling, 7=road, 9=grass, 17=plant, 69=vegetation)
+            const TREE_CLASSES = new Set([5, 9, 17, 69, 70]);
+            
+            const mask = new Float32Array(width * height);
+            let treePixelCount = 0;
+            let totalPixels = width * height;
+            
+            for (let i = 0; i < segmentationMap.length; i++) {
+                const cls = segmentationMap[i];
+                if (TREE_CLASSES.has(cls)) {
+                    mask[i] = 1.0;
+                    treePixelCount++;
+                } else {
+                    mask[i] = 0.0;
+                }
+            }
+            
+            const treePercent = (treePixelCount / totalPixels * 100);
+            console.log('✅ DeepLab: ' + treePixelCount + ' tree pixels (' + treePercent.toFixed(1) + '% of image)');
+            
+            // Apply light morphological dilation to fill gaps in tree mask
+            const dilatedMask = this.dilate(mask, width, height, 3);
+            
+            return {
+                mask: dilatedMask,
+                width: width,
+                height: height,
+                treePercent: treePercent,
+                treePixelCount: treePixelCount,
+                source: 'deeplab_ade20k'
+            };
+        } catch (e) {
+            console.warn('DeepLab segmentation error:', e);
+            return null;
         }
     }
 
@@ -1050,51 +1148,120 @@ class AdvancedTreeML {
         try {
             if (!this.isModelLoaded) { await this.loadModels(); }
             
-            console.log('🔬 Starting Real-World Tree Analysis...');
+            console.log('🔬 Starting DeepLab + Real-World Tree Analysis...');
             var startTime = performance.now();
             
             var context = canvas.getContext('2d');
             var imageData = context.getImageData(0, 0, canvas.width, canvas.height);
             
-            // Step 0: AI Object Detection — identify what's in the photo
+            // ============================================================
+            // STEP 0-A: DeepLab Semantic Segmentation (PRIMARY METHOD)
+            // Detects actual tree pixels, ignores person/bike/background
+            // ============================================================
+            var deeplabResult = await this.segmentWithDeepLab(canvas);
+            var usingDeepLab = false;
+            
+            if (deeplabResult && deeplabResult.treePercent >= 4) {
+                console.log('✅ DeepLab found tree pixels: ' + deeplabResult.treePercent.toFixed(1) + '% — using as primary mask');
+                usingDeepLab = true;
+            } else if (deeplabResult) {
+                console.log('⚠️ DeepLab found only ' + deeplabResult.treePercent.toFixed(1) + '% tree pixels — falling back to color');
+            } else {
+                console.log('⚠️ DeepLab unavailable — using color-based detection');
+            }
+            
+            // ============================================================
+            // STEP 0-B: COCO-SSD check (only hard-block indoor/tech objects)
+            // If person+tree in frame: DeepLab handles it — we continue
+            // ============================================================
             var aiDetection = await this.detectObjectsAI(canvas);
             console.log('AI Object Detection:', aiDetection);
             
             if (!aiDetection.isTree) {
+                // Hard block — indoor tech device detected, definitely not outdoors
                 const hindiMsg = aiDetection.errorMessage + '\n\n🇮🇳 यह tree नहीं है! कृपया असली पेड़ की photo लें।';
                 throw new Error(hindiMsg);
             }
             
-            // Step 1: Color-based tree validation (secondary check)
-            var validation = this.validateTreePresence(imageData);
-            console.log('Color validation:', validation);
-            
-            if (!validation.isTree) {
-                const hindiMsg = validation.errorMessage + '\n\n🌳 पेड़ नहीं मिला! Tree का trunk और पत्तियां साफ दिखनी chahiye।';
-                throw new Error(hindiMsg);
+            if (aiDetection.hasDistraction && aiDetection.warningMessage) {
+                console.log('ℹ️ Distraction warning:', aiDetection.warningMessage);
+                // Continue — DeepLab will isolate tree pixels from background
             }
             
-            // Step 2: Gaussian blur for noise reduction
+            // ============================================================
+            // STEP 1: Color validation (only if DeepLab didn't find tree)
+            // ============================================================
+            var validation = null;
+            if (!usingDeepLab) {
+                validation = this.validateTreePresence(imageData);
+                console.log('Color validation:', validation);
+                
+                if (!validation.isTree) {
+                    const hindiMsg = validation.errorMessage + '\n\n🌳 पेड़ नहीं मिला! Tree का trunk और पत्तियां साफ दिखनी chahiye।';
+                    throw new Error(hindiMsg);
+                }
+            } else {
+                // DeepLab found tree — create a pass-through validation result
+                validation = { isTree: true, greenPercent: '?', brownPercent: '?', source: 'deeplab' };
+            }
+            
+            // ============================================================
+            // STEP 2: Gaussian blur for noise reduction
+            // ============================================================
             var blurred = this.gaussianBlur(imageData, 2);
             
-            // Step 3: Advanced multi-channel segmentation
-            var segResult = this.segmentTreeAdvanced(blurred);
-            console.log('Segmentation: Green ' + segResult.greenPercent + '%, Trunk ' + segResult.trunkPercent + '%');
-            
-            if (parseFloat(segResult.greenPercent) < 1 && parseFloat(segResult.trunkPercent) < 1) {
-                throw new Error('Tree साफ नहीं दिख रहा! Frame में tree 30-80% भरा होना chahiye और अच्छी रोशनी होनी chahiye। 📸');
+            // ============================================================
+            // STEP 3: Build segmentation mask
+            // PRIMARY: DeepLab pixel mask (tree only, no background)
+            // FALLBACK: Color-based segmentation
+            // ============================================================
+            var segResult;
+            if (usingDeepLab) {
+                // Use DeepLab mask directly — scale it to canvas size
+                segResult = {
+                    mask: deeplabResult.mask,
+                    width: deeplabResult.width,
+                    height: deeplabResult.height,
+                    greenPercent: deeplabResult.treePercent.toFixed(1),
+                    trunkPercent: deeplabResult.treePercent.toFixed(1),
+                    source: 'deeplab'
+                };
+                console.log('🌳 Using DeepLab mask for trunk detection');
+            } else {
+                segResult = this.segmentTreeAdvanced(blurred);
+                console.log('Color Segmentation: Green ' + segResult.greenPercent + '%, Trunk ' + segResult.trunkPercent + '%');
+                
+                if (parseFloat(segResult.greenPercent) < 1 && parseFloat(segResult.trunkPercent) < 1) {
+                    throw new Error('Tree साफ नहीं दिख रहा! Frame में tree 30-80% भरा होना chahiye और अच्छी रोशनी होनी chahiye। 📸');
+                }
             }
             
-            // Step 4: Precise trunk detection with vertical analysis
+            // ============================================================
+            // STEP 4: Precise trunk detection with vertical analysis
+            // ============================================================
             var bounds = this.detectTrunkPrecise(canvas, segResult.mask, segResult.width, segResult.height);
             console.log('Trunk detected:', bounds);
             
             if (bounds.trunkWidthPx < 5) {
+                if (usingDeepLab) {
+                    throw new Error('DeepLab ने tree detect किया लेकिन trunk width नहीं मिली! 💡\n• Tree का trunk camera के center में रखें\n• Trunk पर direct sunlight होनी चाहिए\n• Tree से 2-3 मीटर दूर खड़े रहें');
+                }
                 throw new Error('Trunk साफ detect नहीं हुआ! 💡 सुझाव:\n• Trunk पर अच्छी रोशनी होनी chahiye\n• Tree से 2-3 मीटर दूर खड़े रहें\n• Camera को सीधा (level) रखें');
             }
             
-            // Step 4b: Structural validation - reject non-tree shapes
-            var structureCheck = this.validateTreeStructure(canvas, bounds);
+            // Step 4b: Structural validation — skip strict checks if DeepLab confirmed tree
+            var structureCheck;
+            if (usingDeepLab) {
+                // DeepLab already confirmed these are tree pixels — only check extreme cases
+                var trunkWidthRatio = bounds.trunkWidthPx / canvas.width;
+                if (trunkWidthRatio > 0.50) {
+                    structureCheck = { valid: false, reason: 'Trunk बहुत बड़ा दिख रहा है। Tree से 2-3m दूर खड़े हों। 📏' };
+                } else {
+                    structureCheck = { valid: true };
+                }
+            } else {
+                structureCheck = this.validateTreeStructure(canvas, bounds);
+            }
             if (!structureCheck.valid) {
                 throw new Error(structureCheck.reason);
             }
@@ -1131,6 +1298,17 @@ class AdvancedTreeML {
             var elapsed = (performance.now() - startTime).toFixed(0);
             console.log('✅ Analysis complete in ' + elapsed + 'ms');
             console.log('Circumference: ' + measurements.circumference + ' cm, Confidence: ' + measurements.confidence + '%');
+            console.log('Segmentation source: ' + (usingDeepLab ? 'DeepLab ADE20K 🌳' : 'Color-based fallback'));
+            
+            // Add DeepLab badge to method details if used
+            if (usingDeepLab && measurements.methodDetails) {
+                measurements.methodDetails.unshift({
+                    name: '🌳 DeepLab ADE20K',
+                    value: parseFloat(measurements.circumference),
+                    weight: 0,
+                    label: deeplabResult.treePercent.toFixed(1) + '% tree pixels isolated'
+                });
+            }
             
             return {
                 height: measurements.height,
@@ -1144,7 +1322,9 @@ class AdvancedTreeML {
                 bounds: bounds,
                 validation: validation,
                 species: selectedSpecies,
-                processingTime: elapsed
+                processingTime: elapsed,
+                deeplabUsed: usingDeepLab,
+                deeplabTreePercent: usingDeepLab ? deeplabResult.treePercent.toFixed(1) : null
             };
             
         } catch (error) {

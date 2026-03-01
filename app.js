@@ -290,7 +290,7 @@ function displayResults(treeData, results, age, latitude, longitude) {
     document.getElementById('carEquivalent').textContent = results.equivalents.carKm;
     document.getElementById('homeEquivalent').textContent = results.equivalents.homeDays;
 
-    // Display tree information for agriculture students
+    // Display tree information for agriculture users
     const treeInfoCard = document.getElementById('treeInfoCard');
     if (treeData.info) {
         document.getElementById('treeUses').textContent = treeData.info.uses;
@@ -346,7 +346,7 @@ function saveToHistory(treeData, results, age, latitude, longitude) {
     // Update history display
     displayHistory();
     
-    // If student is logged in, submit to Firebase for admin
+    // If user is logged in, submit to Firebase for admin
     submitToAdmin(treeData, results, age, latitude, longitude);
 }
 
@@ -354,7 +354,7 @@ function saveToHistory(treeData, results, age, latitude, longitude) {
 async function submitToAdmin(treeData, results, age, latitude, longitude) {
     const studentSession = localStorage.getItem('studentSession');
     if (!studentSession) {
-        console.log('⚠️ No student session found, skipping admin submission');
+        console.log('⚠️ No user session found, skipping admin submission');
         return;
     }
     

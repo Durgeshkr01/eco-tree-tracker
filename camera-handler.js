@@ -158,7 +158,7 @@ function initializeCameraHandlers() {
         let tipsHTML = '';
         if (measurements.accuracyTips && measurements.accuracyTips.length > 0) {
             tipsHTML = '<div style="margin-top:8px; padding:8px; background:rgba(245,158,11,0.1); border-radius:8px; border:1px solid rgba(245,158,11,0.2);">' +
-                '<div style="color:#f59e0b; margin-bottom:4px;"><i class="fas fa-lightbulb"></i> <b>बेहतर accuracy के लिए:</b></div>' +
+                '<div style="color:#f59e0b; margin-bottom:4px;"><i class="fas fa-lightbulb"></i> <b>Tips for better accuracy:</b></div>' +
                 measurements.accuracyTips.map(function(tip) { return '<div style="margin-left:8px;">• ' + tip + '</div>'; }).join('') +
                 '</div>';
         }
@@ -168,9 +168,14 @@ function initializeCameraHandlers() {
                 <i class="fas fa-brain" style="color: #a78bfa;"></i>
                 <b>ML Methods:</b> ${methodText}
             </div>
+            ${measurements.deeplabUsed ? `<div style="margin-top:6px;padding:6px 10px;background:rgba(16,185,129,0.15);border-radius:8px;border:1px solid rgba(16,185,129,0.3);">
+                <i class="fas fa-tree" style="color:#10b981;"></i>
+                <b style="color:#10b981;">DeepLab ADE20K Active</b>
+                <span style="opacity:0.7;margin-left:6px;">${measurements.deeplabTreePercent}% tree pixels isolated — person/bike ignored ✅</span>
+            </div>` : ''}
             ${realWorldHTML}
-            ${measurements.species ? '<div style="margin-top:4px;"><i class="fas fa-leaf" style="color: #10b981;"></i> Species: <b>' + measurements.species + '</b></div>' : '<div style="color: #f59e0b; margin-top:4px;"><i class="fas fa-exclamation-triangle"></i> Species select करें — accuracy बढ़ेगी</div>'}
-            <div style="margin-top: 4px;"><i class="fas fa-bolt" style="color: #f59e0b;"></i> ${measurements.processingTime || '?'}ms में process हुआ</div>
+            ${measurements.species ? '<div style="margin-top:4px;"><i class="fas fa-leaf" style="color: #10b981;"></i> Species: <b>' + measurements.species + '</b></div>' : '<div style="color: #f59e0b; margin-top:4px;"><i class="fas fa-exclamation-triangle"></i> Select a species — improves accuracy</div>'}
+            <div style="margin-top: 4px;"><i class="fas fa-bolt" style="color: #f59e0b;"></i> Processed in ${measurements.processingTime || '?'}ms</div>
             ${tipsHTML}
         `;
     }
@@ -292,7 +297,7 @@ function showAutoFillNotification(circumferenceValue) {
         <i class="fas fa-check-circle" style="font-size: 24px;"></i>
         <div>
             <div style="font-size: 13px; opacity: 0.85;">Auto-Detected Circumference</div>
-            <div style="font-size: 22px;">${circumferenceValue.toFixed(1)} cm</div>
+            <div style="font-size: 22px;">${circumferenceValue.toFixed(1)} cm ✅</div>
         </div>
     `;
 

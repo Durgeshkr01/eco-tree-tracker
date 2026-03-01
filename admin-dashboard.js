@@ -68,7 +68,7 @@ window.generateNewPass = async () => {
         });
         
         document.getElementById('passCodeDisplay').textContent = newPass;
-        alert('✅ Your permanent access code generated: ' + newPass + '\n\nThis code will remain the same. Students can use this code to login.');
+        alert('✅ Your permanent access code generated: ' + newPass + '\n\nThis code will remain the same. Users can use this code to login.');
         console.log('✅ Code saved to database');
     } catch (error) {
         console.error('❌ Error generating pass:', error);
@@ -99,7 +99,7 @@ window.deactivatePass = async () => {
         return;
     }
     
-    if (!confirm('Are you sure you want to deactivate this code? Students will not be able to log in.')) {
+    if (!confirm('Are you sure you want to deactivate this code? Users will not be able to log in.')) {
         return;
     }
     
@@ -143,7 +143,7 @@ window.loadDashboardData = async () => {
         console.log('🔍 Admin username type:', typeof currentAdmin.username);
         console.log('🔍 Admin username value:', JSON.stringify(currentAdmin.username));
         
-        // Listen to student submissions in real-time
+        // Listen to user submissions in real-time
         if (submissionsListener) {
             submissionsListener(); // Unsubscribe previous listener
         }
@@ -262,7 +262,7 @@ async function loadSubmissionsWithoutOrder() {
 
 // Update Dashboard Stats
 function updateDashboardStats(submissions) {
-    // Count unique students
+    // Count unique users
     const uniqueStudents = new Set(submissions.map(s => s.studentId)).size;
     document.getElementById('activeStudents').textContent = uniqueStudents;
     
@@ -282,7 +282,7 @@ function updateDashboardStats(submissions) {
     document.getElementById('totalLocations').textContent = uniqueLocations;
 }
 
-// Update Students Table
+// Update Users Table
 function updateStudentsTable(submissions) {
     const tbody = document.getElementById('studentsTableBody');
     
@@ -290,7 +290,7 @@ function updateStudentsTable(submissions) {
         tbody.innerHTML = `
             <tr>
                 <td colspan="6" style="text-align: center; color: #999;">
-                    No data available. Students will appear here once they submit data.
+                    No data available. Users will appear here once they submit data.
                 </td>
             </tr>
         `;
@@ -309,7 +309,7 @@ function updateStudentsTable(submissions) {
     `).join('');
 }
 
-// View Student Submission Details
+// View User Submission Details
 window.viewDetails = async (submissionId) => {
     const admin = window.getCurrentAdmin();
     if (!admin) return;
@@ -326,7 +326,7 @@ window.viewDetails = async (submissionId) => {
         const modalBody = document.getElementById('modalBody');
         modalBody.innerHTML = `
             <div class="detail-row">
-                <strong>Student ID:</strong>
+                <strong>User ID:</strong>
                 <span>${data.studentId || 'N/A'}</span>
             </div>
             <div class="detail-row">
@@ -484,7 +484,7 @@ function updateHeatMap(submissions) {
     
     if (validSubmissions.length === 0) {
         console.log('⚠️ No valid coordinates for heat map');
-        alert('No location data available. Students need to add GPS coordinates when submitting trees.');
+        alert('No location data available. Users need to add GPS coordinates when submitting trees.');
         return;
     }
     
@@ -554,7 +554,7 @@ function updateHeatMap(submissions) {
         }).addTo(heatMapInstance)
           .bindPopup(`
               <strong>${s.treeName}</strong><br>
-              Student: ${s.studentId}<br>
+              User: ${s.studentId}<br>
               <strong>CO2: ${co2Value} kg</strong><br>
               Location: ${lat.toFixed(4)}, ${lng.toFixed(4)}
           `);

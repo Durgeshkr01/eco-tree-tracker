@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Faculty Login - EcoTree Tracker</title>
+    <title>Admin Login - EcoTree Tracker</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -46,7 +46,7 @@
 
     <div class="login-card">
         <div class="logo-icon"><i class="fas fa-chalkboard-teacher"></i></div>
-        <h1>Faculty Portal</h1>
+        <h1>Admin Portal</h1>
         <p class="subtitle" id="formTitle">Sign in to manage your dashboard</p>
 
         <div class="mode-tabs">
@@ -98,7 +98,7 @@
 
             if (register) {
                 nameGroup.style.display = 'block';
-                formTitle.textContent = 'Create a new faculty account';
+                formTitle.textContent = 'Create a new admin account';
                 btnText.innerHTML = '<i class="fas fa-user-plus"></i> Create Account';
                 toggleText.innerHTML = 'Already have an account? <a onclick="switchMode(false)">Login</a>';
                 tabRegister.classList.add('active');

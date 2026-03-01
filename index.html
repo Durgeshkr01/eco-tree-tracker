@@ -16,6 +16,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js"></script>
     <!-- COCO-SSD: Real AI Object Detection (identifies laptop, person, phone, etc.) -->
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+    <!-- DeepLab v3: Semantic Segmentation — pixel-level tree detection, ignores person/bike/background -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/deeplab@0.2.1/dist/deeplab.min.js"></script>
     
     <!-- HTML2PDF Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -682,7 +684,7 @@
                     <div class="update-content">
                         <h3>New Update Available!</h3>
                         <p>Version ${version} with new features & improvements</p>
-                        <p class="update-note">Premium UI + Tree Information for Agriculture Students</p>
+                        <p class="update-note">Premium UI + Tree Information for Agriculture Users</p>
                     </div>
                     <div class="update-buttons">
                         <button onclick="location.reload()" class="update-btn-primary">
@@ -843,7 +845,8 @@
                 <div id="analysisStatus" style="text-align: center; padding: 16px; display: none;">
                     <div style="width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #10b981; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 10px;"></div>
                     <p style="color: #34d399; font-weight: 600;">Analyzing tree...</p>
-                    <small style="color: rgba(255,255,255,0.4);">Edge Detection + HSV/LAB + Species Calibration</small>
+                    <small style="color: rgba(255,255,255,0.4);">🌳 DeepLab ADE20K + Edge Detection + Species Calibration</small>
+                    <div style="margin-top:8px;font-size:11px;color:rgba(255,255,255,0.3);">Person / bike / background ignored automatically</div>
                     <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
                 </div>
 
@@ -866,7 +869,20 @@
                 <div class="measurement-result-card">
                     <h4><i class="fas fa-chart-bar"></i> AI Detection Results</h4>
                     <div class="measurement-values" style="text-align: center;">
-                        <p class="highlight-row" style="margin: 20px 0;"><strong style="font-size: 1.1em;"><i class="fas fa-circle-notch" style="color:#10b981;"></i> Circumference (DBH)</strong> <br><span id="detectedCircumference" style="color: #10b981; font-size: 2.2em; font-weight: bold; display: block; margin: 10px 0;">-</span> <span style="font-size: 1.4em; color: rgba(255,255,255,0.8);">cm</span></p>
+                        <p class="highlight-row" style="margin: 20px 0;">
+                            <strong style="font-size: 1.1em;"><i class="fas fa-circle-notch" style="color:#10b981;"></i> Circumference (DBH)</strong>
+                            <br>
+                            <span id="detectedCircumference"
+                                onclick="document.getElementById('useMeasurementBtn').click()"
+                                title="Tap to auto-fill"
+                                style="color: #10b981; font-size: 2.2em; font-weight: bold; display: block; margin: 10px 0; cursor: pointer; border: 2px dashed rgba(16,185,129,0.4); border-radius: 12px; padding: 6px 16px; transition: all 0.2s;"
+                                onmouseover="this.style.background='rgba(16,185,129,0.15)'"
+                                onmouseout="this.style.background='transparent'">
+                                -
+                            </span>
+                            <span style="font-size: 1.4em; color: rgba(255,255,255,0.8);">cm</span>
+                            <div style="font-size:11px; color:rgba(16,185,129,0.6); margin-top:4px;"><i class="fas fa-hand-pointer"></i> Tap value to auto-fill</div>
+                        </p>
                         <p style="margin-top: 16px;"><strong><i class="fas fa-bullseye" style="color:#f59e0b;"></i> Confidence</strong> <span id="detectedConfidence" style="color: #fbbf24; font-size: 1.2em; font-weight: 600;">-</span>%</p>
                     </div>
                     <button id="useMeasurementBtn" type="button" class="btn-primary use-measurement-btn">
@@ -902,7 +918,7 @@
                     <input type="number" id="customWidth" step="0.1" min="0.1" placeholder="Width in cm" style="width: 100%; padding: 8px 12px; background: rgba(30,41,59,0.8); border: 1px solid rgba(16,185,129,0.3); border-radius: 8px; color: #e2e8f0; font-size: 13px;">
                 </div>
                 <small style="color: rgba(255,255,255,0.3); font-size: 10px; display: block; margin-top: 4px;">
-                    💡 बेहतर accuracy के लिए — person या card trunk के पास रखें
+                    💡 For better accuracy — place a person or card near the trunk
                 </small>
             </div>
         </div>

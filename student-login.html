@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Student Login - EcoTree Tracker</title>
+    <title>User Login - EcoTree Tracker</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -43,8 +43,8 @@
 
     <div class="login-card">
         <div class="logo-icon"><i class="fas fa-user-graduate"></i></div>
-        <h1>Student Login</h1>
-        <p>Enter the access code provided by your faculty</p>
+        <h1>User Login</h1>
+        <p>Enter the access code provided by your admin</p>
         <form id="studentLoginForm">
             <div class="form-group">
                 <label><i class="fas fa-user"></i> Your Name / ID</label>
@@ -59,9 +59,9 @@
                 <div class="spinner" id="spinner"></div>
             </button>
         </form>
-        <p class="error-msg" id="errorMsg">Invalid access code. Please check with your faculty.</p>
+        <p class="error-msg" id="errorMsg">Invalid access code. Please check with your admin.</p>
         <div class="divider">Secure Authentication</div>
-        <p class="hint">Enter the 5-character code your faculty shared with you. Contact your faculty if you don't have one.</p>
+        <p class="hint">Enter the 5-character code your admin shared with you. Contact your admin if you don't have one.</p>
     </div>
 
     <script type="module">
@@ -107,7 +107,7 @@
                     }));
                     window.location.href = 'index.html';
                 } else {
-                    errorMsg.innerHTML = '<i class="fas fa-exclamation-circle"></i> Invalid access code. Please check with your faculty.';
+                    errorMsg.innerHTML = '<i class="fas fa-exclamation-circle"></i> Invalid access code. Please check with your admin.';
                     errorMsg.style.display = 'block';
                 }
             } catch (error) {

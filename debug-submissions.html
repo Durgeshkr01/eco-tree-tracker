@@ -207,7 +207,7 @@
                     <table style="font-size: 12px;">
                     <tr>
                         <th>Admin Username</th>
-                        <th>Student ID</th>
+                        <th>User ID</th>
                         <th>Tree Name</th>
                         <th>CO2 (kg)</th>
                         <th>Access Code</th>
@@ -273,7 +273,7 @@
                 let html = `<div class="status success">
                     ✅ Found ${results.size} submission(s) for admin: <strong>${adminUsername}</strong>
                 </div><table>
-                    <tr><th>Student</th><th>Tree</th><th>CO2</th><th>Time</th></tr>`;
+                    <tr><th>User</th><th>Tree</th><th>CO2</th><th>Time</th></tr>`;
                 
                 results.forEach(doc => {
                     const data = doc.data();
@@ -301,7 +301,7 @@
             try {
                 const testData = {
                     adminUsername: adminUsername,
-                    studentId: 'TEST-STUDENT-' + Date.now(),
+                    studentId: 'TEST-USER-' + Date.now(),
                     accessCode: 'TEST',
                     treeName: 'Test Neem Tree',
                     scientificName: 'Azadirachta indica',
