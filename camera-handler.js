@@ -144,23 +144,31 @@ function initializeCameraHandlers() {
         
         modeSelectorEl.innerHTML = `
             <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-                <button id="autoDetectBtn" type="button" style="flex:1; min-width:140px; padding: 14px 20px; background: linear-gradient(135deg, #059669, #10b981); color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(16,185,129,0.3);">
+                <button id="autoDetectBtn" type="button" disabled style="flex:1; min-width:140px; padding: 14px 20px; background: linear-gradient(135deg, #374151, #4b5563); color: rgba(255,255,255,0.5); border: none; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: not-allowed; box-shadow: none; position: relative; opacity: 0.7;">
                     <i class="fas fa-robot"></i> Auto Detect
+                    <span style="position:absolute; top:-8px; right:-8px; background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; font-size: 9px; font-weight: 800; padding: 2px 8px; border-radius: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Coming Soon</span>
                 </button>
-                <button id="manualSelectBtn" type="button" style="flex:1; min-width:140px; padding: 14px 20px; background: linear-gradient(135deg, #7c3aed, #8b5cf6); color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(139,92,246,0.3);">
+                <button id="manualSelectBtn" type="button" style="flex:1; min-width:140px; padding: 14px 20px; background: linear-gradient(135deg, #7c3aed, #8b5cf6); color: white; border: none; border-radius: 12px; font-size: 15px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 15px rgba(139,92,246,0.3); animation: manualPulse 2s ease-in-out infinite;">
                     <i class="fas fa-hand-pointer"></i> Manual Select
                 </button>
             </div>
+            <style>@keyframes manualPulse { 0%,100% { box-shadow: 0 4px 15px rgba(139,92,246,0.3); } 50% { box-shadow: 0 4px 25px rgba(139,92,246,0.6); } }</style>
             <div style="font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 8px;">
-                Auto = AI detects tree automatically &nbsp;|&nbsp; Manual = Tap trunk edges yourself
+                Auto Detect coming soon &nbsp;|&nbsp; Manual = Tap trunk edges for precise measurement
             </div>
         `;
         modeSelectorEl.style.display = 'block';
         
-        // Auto detect button
-        document.getElementById('autoDetectBtn').addEventListener('click', async () => {
-            modeSelectorEl.style.display = 'none';
-            await analyzePhoto(canvas, file);
+        // Auto detect button (disabled - coming soon)
+        document.getElementById('autoDetectBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            // Show coming soon toast
+            const toast = document.createElement('div');
+            toast.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:rgba(245,158,11,0.95);color:#000;padding:10px 24px;border-radius:10px;font-size:14px;font-weight:700;z-index:99999;box-shadow:0 4px 20px rgba(0,0,0,0.3);';
+            toast.textContent = '🚧 Auto Detect is coming soon!';
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2500);
         });
         
         // Manual select button
@@ -170,10 +178,31 @@ function initializeCameraHandlers() {
         });
     }
     
-    // ===== Enter manual trunk selection mode =====
+    // ===== Enter manual trunk selection mode (Arboreal-style) =====
     function enterManualMode(canvas, imageFile) {
-        manualSelectionMode = true;
+        manualSelectionMode = false;
         manualPoints = [];
+        
+        // State tracking
+        let measureMode = null; // 'reference' or 'distance'
+        let referencePoints = []; // 2 points on reference object
+        let trunkPoints = [];    // 2 points on trunk edges
+        let currentPhase = 'method-select'; // 'method-select', 'ref-tap', 'trunk-tap', 'distance-input'
+        let selectedRefType = null;
+        let selectedRefSizeCm = null;
+        
+        // Known reference object sizes (cm) — real-world width
+        const refObjects = {
+            'credit-card': { name: 'Credit/Debit Card', width: 8.56, icon: '💳' },
+            'aadhar-card': { name: 'Aadhar Card', width: 8.56, icon: '🪪' },
+            'a4-paper': { name: 'A4 Paper (width)', width: 21.0, icon: '📄' },
+            'notebook': { name: 'Notebook (width)', width: 17.6, icon: '📓' },
+            'phone': { name: 'Smartphone', width: 7.5, icon: '📱' },
+            'hand-span': { name: 'Hand Span (thumb to pinky)', width: 20.0, icon: '🖐️' },
+            'pen': { name: 'Pen/Pencil', width: 14.0, icon: '🖊️' },
+            'shoe-length': { name: 'Shoe Length', width: 27.0, icon: '👟' },
+            'custom': { name: 'Custom Size', width: null, icon: '📏' }
+        };
         
         // Show instruction banner
         let instructionEl = document.getElementById('manualInstruction');
@@ -185,34 +214,275 @@ function initializeCameraHandlers() {
                 controlsDiv.parentNode.insertBefore(instructionEl, controlsDiv);
             }
         }
-        instructionEl.style.cssText = 'padding: 12px 16px; text-align: center; background: rgba(139,92,246,0.15); border: 1px solid rgba(139,92,246,0.3); border-radius: 10px; margin: 8px 16px;';
-        instructionEl.innerHTML = `
-            <div style="color: #a78bfa; font-weight: 700; font-size: 15px; margin-bottom: 6px;">
-                <i class="fas fa-hand-pointer"></i> Manual Trunk Selection
-            </div>
-            <div style="color: rgba(255,255,255,0.7); font-size: 13px;">
-                <span id="manualStep">Step 1: Tap the <b>LEFT edge</b> of the trunk at chest height</span>
-            </div>
-            <div style="margin-top: 8px;">
-                <span id="pointCount" style="color: #a78bfa; font-size: 12px;">Points: 0/2</span>
-                <button id="resetPointsBtn" type="button" style="margin-left: 12px; padding: 4px 12px; background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; cursor: pointer; font-size: 11px;">
-                    <i class="fas fa-undo"></i> Reset
-                </button>
-            </div>
-        `;
-        instructionEl.style.display = 'block';
+        instructionEl.style.cssText = 'padding: 14px 16px; text-align: center; background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.25); border-radius: 12px; margin: 8px 16px;';
         
-        // Reset points button
-        document.getElementById('resetPointsBtn').addEventListener('click', () => {
-            manualPoints = [];
-            if (originalImageData) {
-                canvas.getContext('2d').putImageData(originalImageData, 0, 0);
+        // ===== STEP 1: Show measurement method selector =====
+        showMethodSelector();
+        
+        function showMethodSelector() {
+            currentPhase = 'method-select';
+            instructionEl.innerHTML = `
+                <div style="color: #a78bfa; font-weight: 700; font-size: 16px; margin-bottom: 10px;">
+                    <i class="fas fa-ruler-combined"></i> Choose Measurement Method
+                </div>
+                <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 10px;">
+                    <button id="refMethodBtn" type="button" style="flex:1; min-width: 130px; padding: 14px 12px; background: linear-gradient(135deg, #059669, #10b981); color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 3px 12px rgba(16,185,129,0.3);">
+                        <div style="font-size: 24px; margin-bottom: 4px;">📏</div>
+                        <div>Reference Object</div>
+                        <div style="font-size: 10px; opacity: 0.8; margin-top: 2px;">Most Accurate ⭐</div>
+                    </button>
+                    <button id="distMethodBtn" type="button" style="flex:1; min-width: 130px; padding: 14px 12px; background: linear-gradient(135deg, #7c3aed, #8b5cf6); color: white; border: none; border-radius: 12px; font-size: 13px; font-weight: 700; cursor: pointer; box-shadow: 0 3px 12px rgba(139,92,246,0.3);">
+                        <div style="font-size: 24px; margin-bottom: 4px;">📐</div>
+                        <div>Enter Distance</div>
+                        <div style="font-size: 10px; opacity: 0.8; margin-top: 2px;">Quick Method</div>
+                    </button>
+                </div>
+                <div style="font-size: 11px; color: rgba(255,255,255,0.35);">
+                    <i class="fas fa-info-circle"></i> Reference = Place a card/object near trunk for exact scale<br>
+                    Distance = Enter how far you stood from the tree
+                </div>
+            `;
+            instructionEl.style.display = 'block';
+            
+            document.getElementById('refMethodBtn').addEventListener('click', () => {
+                measureMode = 'reference';
+                showReferenceSelector();
+            });
+            
+            document.getElementById('distMethodBtn').addEventListener('click', () => {
+                measureMode = 'distance';
+                startTrunkTapping();
+            });
+        }
+        
+        // ===== REFERENCE METHOD: Select reference object type =====
+        function showReferenceSelector() {
+            currentPhase = 'ref-select';
+            let optionsHTML = '';
+            for (const [key, ref] of Object.entries(refObjects)) {
+                const widthText = ref.width ? ref.width + ' cm' : 'You enter size';
+                const highlight = (key === 'credit-card' || key === 'aadhar-card') ? 'border: 2px solid #10b981; background: rgba(16,185,129,0.15);' : 'border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05);';
+                optionsHTML += `
+                    <button class="ref-option-btn" data-ref="${key}" style="display: flex; align-items: center; gap: 8px; width: 100%; padding: 10px 12px; ${highlight} border-radius: 8px; color: white; cursor: pointer; font-size: 13px; text-align: left; margin-bottom: 4px;">
+                        <span style="font-size: 20px;">${ref.icon}</span>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600;">${ref.name}</div>
+                            <div style="font-size: 10px; color: rgba(255,255,255,0.5);">${widthText}</div>
+                        </div>
+                        ${(key === 'credit-card' || key === 'aadhar-card') ? '<span style="font-size: 9px; background: #10b981; color: white; padding: 2px 6px; border-radius: 4px;">BEST</span>' : ''}
+                    </button>
+                `;
             }
-            document.getElementById('manualStep').innerHTML = 'Step 1: Tap the <b>LEFT edge</b> of the trunk at chest height';
-            document.getElementById('pointCount').textContent = 'Points: 0/2';
-        });
+            
+            instructionEl.innerHTML = `
+                <div style="color: #10b981; font-weight: 700; font-size: 15px; margin-bottom: 8px;">
+                    <i class="fas fa-ruler"></i> What reference object is in the photo?
+                </div>
+                <div style="font-size: 11px; color: rgba(255,255,255,0.4); margin-bottom: 10px;">
+                    Place any object near the trunk before/after taking the photo. Select it below.
+                </div>
+                <div style="max-height: 250px; overflow-y: auto; padding-right: 4px;">
+                    ${optionsHTML}
+                </div>
+                <button id="backToMethodBtn" type="button" style="margin-top: 8px; padding: 6px 16px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; font-size: 11px;">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+            `;
+            
+            // Handle reference selection
+            instructionEl.querySelectorAll('.ref-option-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const refKey = btn.dataset.ref;
+                    selectedRefType = refObjects[refKey];
+                    
+                    if (refKey === 'custom') {
+                        showCustomSizeInput();
+                    } else {
+                        selectedRefSizeCm = selectedRefType.width;
+                        startReferenceTapping();
+                    }
+                });
+            });
+            
+            document.getElementById('backToMethodBtn').addEventListener('click', showMethodSelector);
+        }
         
-        // Canvas touch/click handler for manual points
+        // ===== Custom size input =====
+        function showCustomSizeInput() {
+            currentPhase = 'custom-size';
+            instructionEl.innerHTML = `
+                <div style="color: #f59e0b; font-weight: 700; font-size: 15px; margin-bottom: 8px;">
+                    <i class="fas fa-ruler-horizontal"></i> Enter Reference Object Size
+                </div>
+                <div style="font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 10px;">
+                    Enter the known width/length of your reference object in cm
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; justify-content: center;">
+                    <input id="customRefSize" type="number" inputmode="decimal" placeholder="e.g. 15" step="0.1" min="1" max="200"
+                        style="width: 100px; padding: 10px 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(245,158,11,0.4); border-radius: 8px; color: white; font-size: 16px; text-align: center; font-weight: 700;" />
+                    <span style="color: rgba(255,255,255,0.6); font-size: 14px;">cm</span>
+                    <button id="customRefConfirmBtn" type="button" style="padding: 10px 16px; background: linear-gradient(135deg, #f59e0b, #d97706); color: #000; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer;">
+                        OK <i class="fas fa-check"></i>
+                    </button>
+                </div>
+                <button id="backToRefBtn" type="button" style="margin-top: 8px; padding: 6px 16px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; font-size: 11px;">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+            `;
+            
+            document.getElementById('customRefConfirmBtn').addEventListener('click', () => {
+                const val = parseFloat(document.getElementById('customRefSize').value);
+                if (!val || val < 1 || val > 200) {
+                    document.getElementById('customRefSize').style.borderColor = '#ef4444';
+                    return;
+                }
+                selectedRefSizeCm = val;
+                selectedRefType = { name: 'Custom (' + val + ' cm)', icon: '📏', width: val };
+                startReferenceTapping();
+            });
+            
+            document.getElementById('backToRefBtn').addEventListener('click', showReferenceSelector);
+        }
+        
+        // ===== REFERENCE TAPPING: First mark reference object edges =====
+        function startReferenceTapping() {
+            currentPhase = 'ref-tap';
+            referencePoints = [];
+            manualSelectionMode = true;
+            
+            instructionEl.innerHTML = `
+                <div style="color: #10b981; font-weight: 700; font-size: 15px; margin-bottom: 6px;">
+                    <span style="font-size: 18px;">${selectedRefType.icon}</span> Mark Reference: ${selectedRefType.name}
+                </div>
+                <div style="color: rgba(255,255,255,0.7); font-size: 13px;">
+                    <span id="manualStep">Step 1/4: Tap the <b>LEFT edge</b> of the reference object</span>
+                </div>
+                <div style="font-size: 10px; color: rgba(255,255,255,0.3); margin-top: 4px;">
+                    Reference size: <b style="color: #10b981;">${selectedRefSizeCm} cm</b> — Tap both edges of this object
+                </div>
+                <div style="margin-top: 8px;">
+                    <span id="pointCount" style="color: #10b981; font-size: 12px;">Reference: 0/2 | Trunk: 0/2</span>
+                    <button id="resetPointsBtn" type="button" style="margin-left: 12px; padding: 4px 12px; background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; cursor: pointer; font-size: 11px;">
+                        <i class="fas fa-undo"></i> Reset All
+                    </button>
+                </div>
+                <div style="font-size: 10px; color: rgba(167,139,250,0.5); margin-top: 4px;">
+                    <i class="fas fa-search-plus"></i> Pinch to zoom for precise tapping
+                </div>
+            `;
+            
+            setupResetButton();
+            attachCanvasListeners();
+        }
+        
+        // ===== DISTANCE METHOD: Direct trunk tapping =====
+        function startTrunkTapping() {
+            currentPhase = 'trunk-tap';
+            trunkPoints = [];
+            manualSelectionMode = true;
+            
+            const totalSteps = measureMode === 'reference' ? '3/4' : '1/2';
+            const stepNum = measureMode === 'reference' ? 3 : 1;
+            
+            instructionEl.innerHTML = `
+                <div style="color: #a78bfa; font-weight: 700; font-size: 15px; margin-bottom: 6px;">
+                    <i class="fas fa-tree"></i> Mark Trunk Edges
+                </div>
+                <div style="color: rgba(255,255,255,0.7); font-size: 13px;">
+                    <span id="manualStep">Step ${stepNum}: Tap the <b>LEFT edge</b> of the trunk</span>
+                </div>
+                <div style="font-size: 11px; color: rgba(255,255,255,0.3); margin-top: 4px;">
+                    <i class="fas fa-info-circle"></i> Works for any tree — thin, thick, straight or tilted
+                </div>
+                <div style="margin-top: 8px;">
+                    <span id="pointCount" style="color: #a78bfa; font-size: 12px;">${measureMode === 'reference' ? 'Reference: ✅ | Trunk: 0/2' : 'Trunk: 0/2'}</span>
+                    <button id="resetPointsBtn" type="button" style="margin-left: 12px; padding: 4px 12px; background: rgba(239,68,68,0.2); color: #f87171; border: 1px solid rgba(239,68,68,0.3); border-radius: 6px; cursor: pointer; font-size: 11px;">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
+                </div>
+                <div style="font-size: 10px; color: rgba(167,139,250,0.5); margin-top: 4px;">
+                    <i class="fas fa-search-plus"></i> Pinch to zoom for precise tapping
+                </div>
+            `;
+            
+            setupResetButton();
+            if (measureMode !== 'reference') {
+                attachCanvasListeners();
+            }
+        }
+        
+        function setupResetButton() {
+            const resetBtn = document.getElementById('resetPointsBtn');
+            if (resetBtn) {
+                resetBtn.addEventListener('click', () => {
+                    referencePoints = [];
+                    trunkPoints = [];
+                    manualPoints = [];
+                    manualSelectionMode = false;
+                    removeCanvasListeners();
+                    if (originalImageData) {
+                        canvas.getContext('2d').putImageData(originalImageData, 0, 0);
+                    }
+                    if (measureMode === 'reference') {
+                        startReferenceTapping();
+                    } else {
+                        startTrunkTapping();
+                    }
+                });
+            }
+        }
+        
+        // ===== Draw a point on canvas =====
+        function drawPoint(ctx, x, y, color, label) {
+            // Glow
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 12;
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, 9, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            
+            // White border
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.arc(x, y, 9, 0, 2 * Math.PI);
+            ctx.stroke();
+            
+            // Crosshair
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 1;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath();
+            ctx.moveTo(x, y - 22); ctx.lineTo(x, y + 22);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x - 22, y); ctx.lineTo(x + 22, y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            // Label
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(label, x, y + 4);
+        }
+        
+        // ===== Draw line between two points =====
+        function drawLine(ctx, p1, p2, color, dashed) {
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            if (dashed) ctx.setLineDash([5, 4]);
+            else ctx.setLineDash([]);
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+        
+        // ===== Canvas click handler =====
         function handleCanvasClick(e) {
             if (!manualSelectionMode) return;
             
@@ -231,54 +501,127 @@ function initializeCameraHandlers() {
             
             const x = (clientX - rect.left) * scaleX;
             const y = (clientY - rect.top) * scaleY;
-            
-            manualPoints.push({ x: Math.round(x), y: Math.round(y) });
-            
-            // Draw point marker
+            const point = { x: Math.round(x), y: Math.round(y) };
             const ctx = canvas.getContext('2d');
-            ctx.fillStyle = manualPoints.length === 1 ? '#3b82f6' : '#ef4444';
-            ctx.beginPath();
-            ctx.arc(x, y, 10, 0, 2 * Math.PI);
-            ctx.fill();
-            ctx.strokeStyle = 'white';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(x, y, 10, 0, 2 * Math.PI);
-            ctx.stroke();
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold 12px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(manualPoints.length === 1 ? 'L' : 'R', x, y + 4);
             
-            document.getElementById('pointCount').textContent = 'Points: ' + manualPoints.length + '/2';
-            
-            if (manualPoints.length === 1) {
-                document.getElementById('manualStep').innerHTML = 'Step 2: Now tap the <b>RIGHT edge</b> of the trunk';
-            }
-            
-            if (manualPoints.length >= 2) {
-                // Both points selected — calculate measurements
-                manualSelectionMode = false;
-                canvas.removeEventListener('click', handleCanvasClick);
-                canvas.removeEventListener('touchend', handleCanvasTouch);
+            // ===== REFERENCE PHASE =====
+            if (currentPhase === 'ref-tap') {
+                referencePoints.push(point);
                 
-                document.getElementById('manualStep').innerHTML = '<i class="fas fa-check-circle" style="color:#10b981;"></i> Both edges selected! Calculating...';
-                
-                try {
-                    // Restore original image before drawing overlay
-                    if (originalImageData) {
-                        ctx.putImageData(originalImageData, 0, 0);
+                if (referencePoints.length === 1) {
+                    drawPoint(ctx, x, y, '#f59e0b', 'R1');
+                    document.getElementById('manualStep').innerHTML = 'Step 2/4: Tap the <b>RIGHT edge</b> of the reference object';
+                    document.getElementById('pointCount').innerHTML = 'Reference: 1/2 | Trunk: 0/2';
+                }
+                else if (referencePoints.length === 2) {
+                    drawPoint(ctx, x, y, '#f59e0b', 'R2');
+                    drawLine(ctx, referencePoints[0], referencePoints[1], 'rgba(245,158,11,0.7)', true);
+                    
+                    // Check if reference points are too close
+                    const refDist = Math.sqrt(Math.pow(referencePoints[1].x - referencePoints[0].x, 2) + Math.pow(referencePoints[1].y - referencePoints[0].y, 2));
+                    if (refDist < 5) {
+                        document.getElementById('manualStep').innerHTML = '<i class="fas fa-exclamation-triangle" style="color:#f87171;"></i> Reference points too close! Reset and try again.';
+                        return;
                     }
                     
-                    const measurements = advancedML.manualMeasureFromPoints(canvas, manualPoints[0], manualPoints[1], imageFile);
+                    // Draw reference label
+                    const midRX = (referencePoints[0].x + referencePoints[1].x) / 2;
+                    const midRY = (referencePoints[0].y + referencePoints[1].y) / 2;
+                    ctx.fillStyle = 'rgba(245,158,11,0.85)';
+                    const refLabel = selectedRefType.icon + ' ' + selectedRefSizeCm + ' cm';
+                    const textW = ctx.measureText(refLabel).width + 16;
+                    const rx = midRX - textW/2, ry = midRY - 22, rw = textW, rh = 20, rr = 6;
+                    ctx.beginPath();
+                    ctx.moveTo(rx + rr, ry);
+                    ctx.lineTo(rx + rw - rr, ry);
+                    ctx.arcTo(rx + rw, ry, rx + rw, ry + rr, rr);
+                    ctx.lineTo(rx + rw, ry + rh - rr);
+                    ctx.arcTo(rx + rw, ry + rh, rx + rw - rr, ry + rh, rr);
+                    ctx.lineTo(rx + rr, ry + rh);
+                    ctx.arcTo(rx, ry + rh, rx, ry + rh - rr, rr);
+                    ctx.lineTo(rx, ry + rr);
+                    ctx.arcTo(rx, ry, rx + rr, ry, rr);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillStyle = '#000';
+                    ctx.font = 'bold 11px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(refLabel, midRX, midRY - 9);
                     
-                    // Show full results
-                    showFullResults(measurements);
+                    document.getElementById('pointCount').innerHTML = 'Reference: ✅ <span style="color:#10b981;">(' + selectedRefSizeCm + 'cm)</span> | Trunk: 0/2';
                     
-                    if (instructionEl) instructionEl.style.display = 'none';
+                    // Move to trunk tapping
+                    currentPhase = 'trunk-tap';
+                    trunkPoints = [];
+                    document.getElementById('manualStep').innerHTML = 'Step 3/4: Now tap the <b>LEFT edge</b> of the trunk';
+                }
+                return;
+            }
+            
+            // ===== TRUNK PHASE =====
+            if (currentPhase === 'trunk-tap') {
+                trunkPoints.push(point);
+                
+                const stepBase = measureMode === 'reference' ? 2 : 0;
+                
+                if (trunkPoints.length === 1) {
+                    drawPoint(ctx, x, y, '#3b82f6', 'T1');
+                    const stepNum = measureMode === 'reference' ? '4/4' : '2/2';
+                    document.getElementById('manualStep').innerHTML = `Step ${stepNum}: Tap the <b>RIGHT edge</b> of the trunk`;
+                    if (measureMode === 'reference') {
+                        document.getElementById('pointCount').innerHTML = 'Reference: ✅ | Trunk: 1/2';
+                    } else {
+                        document.getElementById('pointCount').textContent = 'Trunk: 1/2';
+                    }
+                }
+                else if (trunkPoints.length === 2) {
+                    drawPoint(ctx, x, y, '#ef4444', 'T2');
+                    drawLine(ctx, trunkPoints[0], trunkPoints[1], 'rgba(59,130,246,0.7)', true);
                     
-                } catch (err) {
-                    document.getElementById('manualStep').innerHTML = '<i class="fas fa-exclamation-triangle" style="color:#f87171;"></i> ' + err.message;
+                    const trunkDist = Math.sqrt(Math.pow(trunkPoints[1].x - trunkPoints[0].x, 2) + Math.pow(trunkPoints[1].y - trunkPoints[0].y, 2));
+                    
+                    if (trunkDist < 2) {
+                        document.getElementById('manualStep').innerHTML = '<i class="fas fa-exclamation-triangle" style="color:#f87171;"></i> Points too close! Reset and try again.';
+                        return;
+                    }
+                    
+                    // Stop tapping
+                    manualSelectionMode = false;
+                    removeCanvasListeners();
+                    
+                    if (measureMode === 'reference') {
+                        // ===== CALCULATE WITH REFERENCE (EXACT!) =====
+                        document.getElementById('manualStep').innerHTML = '<i class="fas fa-check-circle" style="color:#10b981;"></i> All points selected! Calculating exact measurements...';
+                        document.getElementById('pointCount').innerHTML = 'Reference: ✅ | Trunk: ✅';
+                        
+                        setTimeout(() => {
+                            try {
+                                if (originalImageData) {
+                                    ctx.putImageData(originalImageData, 0, 0);
+                                }
+                                
+                                const measurements = advancedML.manualMeasureWithReference(
+                                    canvas, 
+                                    referencePoints[0], referencePoints[1],
+                                    trunkPoints[0], trunkPoints[1],
+                                    selectedRefSizeCm,
+                                    selectedRefType.name,
+                                    imageFile
+                                );
+                                
+                                showFullResults(measurements);
+                                instructionEl.style.display = 'none';
+                                
+                            } catch (err) {
+                                document.getElementById('manualStep').innerHTML = '<i class="fas fa-exclamation-triangle" style="color:#f87171;"></i> ' + err.message;
+                            }
+                        }, 300);
+                        
+                    } else {
+                        // ===== DISTANCE METHOD: ask for distance =====
+                        document.getElementById('manualStep').innerHTML = '<i class="fas fa-check-circle" style="color:#10b981;"></i> Edges selected! Enter distance below.';
+                        showDistanceInputPrompt(instructionEl, canvas, imageFile);
+                    }
                 }
             }
         }
@@ -288,11 +631,93 @@ function initializeCameraHandlers() {
             handleCanvasClick(e);
         }
         
-        canvas.addEventListener('click', handleCanvasClick);
-        canvas.addEventListener('touchend', handleCanvasTouch, { passive: false });
+        function attachCanvasListeners() {
+            canvas.addEventListener('click', handleCanvasClick);
+            canvas.addEventListener('touchend', handleCanvasTouch, { passive: false });
+            canvas.style.cursor = 'crosshair';
+        }
         
-        // Change cursor
-        canvas.style.cursor = 'crosshair';
+        function removeCanvasListeners() {
+            canvas.removeEventListener('click', handleCanvasClick);
+            canvas.removeEventListener('touchend', handleCanvasTouch);
+        }
+        
+        // ===== Distance input prompt (fallback method) =====
+        function showDistanceInputPrompt(instructionEl, canvas, imageFile) {
+            currentPhase = 'distance-input';
+            
+            let distPromptEl = document.getElementById('distancePrompt');
+            if (!distPromptEl) {
+                distPromptEl = document.createElement('div');
+                distPromptEl.id = 'distancePrompt';
+                instructionEl.appendChild(distPromptEl);
+            }
+            
+            distPromptEl.style.cssText = 'margin-top: 12px; padding: 12px; background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.3); border-radius: 10px;';
+            distPromptEl.innerHTML = `
+                <div style="color: #10b981; font-weight: 700; font-size: 14px; margin-bottom: 8px;">
+                    <i class="fas fa-ruler"></i> How far were you from the tree?
+                </div>
+                <div style="color: rgba(255,255,255,0.5); font-size: 11px; margin-bottom: 10px;">
+                    Accurate distance = accurate measurement. Measure or estimate carefully.
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; justify-content: center; flex-wrap: wrap;">
+                    <input id="manualDistanceInput" type="number" inputmode="decimal" placeholder="e.g. 2.5" step="0.1" min="0.3" max="50" 
+                        style="width: 100px; padding: 10px 12px; background: rgba(255,255,255,0.1); border: 1px solid rgba(16,185,129,0.4); border-radius: 8px; color: white; font-size: 16px; text-align: center; font-weight: 700;" />
+                    <span style="color: rgba(255,255,255,0.6); font-size: 14px; font-weight: 600;">meters</span>
+                    <button id="calcManualBtn" type="button" style="padding: 10px 20px; background: linear-gradient(135deg, #059669, #10b981); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer;">
+                        <i class="fas fa-calculator"></i> Calculate
+                    </button>
+                </div>
+                <div style="display: flex; gap: 6px; justify-content: center; margin-top: 8px; flex-wrap: wrap;">
+                    <button class="quick-dist-btn" data-dist="1" style="padding: 5px 12px; background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); border-radius: 6px; cursor: pointer; font-size: 11px;">1m</button>
+                    <button class="quick-dist-btn" data-dist="1.5" style="padding: 5px 12px; background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); border-radius: 6px; cursor: pointer; font-size: 11px;">1.5m</button>
+                    <button class="quick-dist-btn" data-dist="2" style="padding: 5px 12px; background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); border-radius: 6px; cursor: pointer; font-size: 11px;">2m</button>
+                    <button class="quick-dist-btn" data-dist="3" style="padding: 5px 12px; background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); border-radius: 6px; cursor: pointer; font-size: 11px;">3m</button>
+                    <button class="quick-dist-btn" data-dist="5" style="padding: 5px 12px; background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.3); border-radius: 6px; cursor: pointer; font-size: 11px;">5m</button>
+                </div>
+                <div style="font-size: 10px; color: rgba(255,255,255,0.3); margin-top: 6px;">
+                    <i class="fas fa-lightbulb"></i> Tip: 1 step ≈ 0.7m, arm's length ≈ 0.6m
+                </div>
+            `;
+            
+            // Quick distance buttons
+            distPromptEl.querySelectorAll('.quick-dist-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.getElementById('manualDistanceInput').value = btn.dataset.dist;
+                });
+            });
+            
+            // Calculate button
+            document.getElementById('calcManualBtn').addEventListener('click', () => {
+                const distInput = document.getElementById('manualDistanceInput');
+                const distMeters = parseFloat(distInput.value);
+                
+                if (!distMeters || distMeters < 0.3 || distMeters > 50) {
+                    distInput.style.borderColor = '#ef4444';
+                    distInput.placeholder = 'Enter valid distance!';
+                    return;
+                }
+                
+                const distCm = distMeters * 100;
+                
+                try {
+                    const ctx = canvas.getContext('2d');
+                    if (originalImageData) {
+                        ctx.putImageData(originalImageData, 0, 0);
+                    }
+                    
+                    const measurements = advancedML.manualMeasureFromPoints(canvas, trunkPoints[0], trunkPoints[1], imageFile, distCm);
+                    
+                    showFullResults(measurements);
+                    instructionEl.style.display = 'none';
+                    if (distPromptEl) distPromptEl.style.display = 'none';
+                    
+                } catch (err) {
+                    document.getElementById('manualStep').innerHTML = '<i class="fas fa-exclamation-triangle" style="color:#f87171;"></i> ' + err.message;
+                }
+            });
+        }
     }
     
     // ===== Show full results with all measurements =====

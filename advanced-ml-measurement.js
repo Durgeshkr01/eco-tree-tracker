@@ -1510,37 +1510,137 @@ class AdvancedTreeML {
     // ==================== MANUAL TRUNK SELECTION ====================
     // User taps two points on trunk edges → calculate real-world measurements
     
-    manualMeasureFromPoints(canvas, point1, point2, imageFile) {
-        var trunkWidthPx = Math.abs(point2.x - point1.x);
-        var midY = (point1.y + point2.y) / 2;
-        var trunkCenterX = (point1.x + point2.x) / 2;
+    // ===== METHOD 1: REFERENCE OBJECT (EXACT — like Arboreal) =====
+    // User taps 2 points on a known-size reference + 2 points on trunk
+    // Pure pixel-ratio math → real values. No distance needed.
+    manualMeasureWithReference(canvas, refPoint1, refPoint2, trunkPoint1, trunkPoint2, refSizeCm, refName, imageFile) {
+        // Calculate pixel distances (Euclidean — works for any angle)
+        var refDx = refPoint2.x - refPoint1.x;
+        var refDy = refPoint2.y - refPoint1.y;
+        var refPixels = Math.sqrt(refDx * refDx + refDy * refDy);
         
-        if (trunkWidthPx < 3) {
-            throw new Error('Points are too close! Tap the LEFT and RIGHT edges of the trunk.');
+        var trunkDx = trunkPoint2.x - trunkPoint1.x;
+        var trunkDy = trunkPoint2.y - trunkPoint1.y;
+        var trunkPixels = Math.sqrt(trunkDx * trunkDx + trunkDy * trunkDy);
+        
+        if (refPixels < 3) {
+            throw new Error('Reference points are too close! Tap the edges of the reference object clearly.');
+        }
+        if (trunkPixels < 2) {
+            throw new Error('Trunk points are too close! Tap the LEFT and RIGHT edges of the trunk.');
         }
         
-        // Estimate distance from camera
-        var imgW = canvas.width;
+        // *** THE KEY FORMULA — pixel ratio scaling ***
+        // cmPerPixel = known real size / pixels of reference
+        // trunk real size = trunk pixels × cmPerPixel
+        var cmPerPixel = refSizeCm / refPixels;
+        var trunkDiameterCm = trunkPixels * cmPerPixel;
+        
+        // Perspective correction: if reference and trunk are at different 
+        // vertical positions, they may be at slightly different depths.
+        // Apply mild correction based on vertical distance
+        var refMidY = (refPoint1.y + refPoint2.y) / 2;
+        var trunkMidY = (trunkPoint1.y + trunkPoint2.y) / 2;
         var imgH = canvas.height;
-        var fov = this.cameraParams.fovHorizontal || 65;
-        var fovRad = (fov * Math.PI) / 180;
+        var verticalSeparation = Math.abs(refMidY - trunkMidY) / imgH;
         
-        // Default assumed distance (if no reference)
-        var distanceCm = this.DEFAULT_DISTANCE_CM;
+        // If reference and trunk are close in image → no correction needed
+        // If far apart vertically → small perspective adjustment (max ±8%)
+        var perspectiveCorrection = 1.0;
+        if (verticalSeparation > 0.15) {
+            // Objects lower in image are closer to camera (slightly larger per pixel)
+            var correctionFactor = verticalSeparation * 0.08;
+            if (trunkMidY > refMidY) {
+                // Trunk is lower → it's closer → it appears larger → reduce slightly
+                perspectiveCorrection = 1.0 - correctionFactor;
+            } else {
+                // Trunk is higher → it's farther → it appears smaller → increase slightly
+                perspectiveCorrection = 1.0 + correctionFactor;
+            }
+        }
+        trunkDiameterCm = trunkDiameterCm * perspectiveCorrection;
         
-        // Calculate real-world trunk width using pinhole camera model
-        // trunkRealWidth = (trunkWidthPx / imgW) * 2 * distance * tan(fov/2)
-        var fieldOfViewWidth = 2 * distanceCm * Math.tan(fovRad / 2);
-        var trunkWidthCm = (trunkWidthPx / imgW) * fieldOfViewWidth;
+        // Circumference = π × diameter
+        var circumferenceCm = trunkDiameterCm * Math.PI;
         
-        // Circumference from diameter (assuming roughly circular trunk)
-        var circumferenceCm = trunkWidthCm * Math.PI;
+        // Round to 1 decimal
+        trunkDiameterCm = Math.round(trunkDiameterCm * 10) / 10;
+        circumferenceCm = Math.round(circumferenceCm * 10) / 10;
         
-        // Height estimation: if user selected breast height area, 
-        // estimate full tree height from image proportions
-        var estimatedHeightCm = this._estimateHeightFromCanvas(canvas, midY);
+        // Height estimation
+        var trunkMidX = (trunkPoint1.x + trunkPoint2.x) / 2;
+        var estimatedHeightCm = this._estimateHeightFromCanvas(canvas, trunkMidY);
         
-        // Get species info for calibration
+        // Trunk angle detection
+        var trunkAngleDeg = Math.abs(Math.atan2(Math.abs(trunkDx), Math.abs(trunkDy)) * 180 / Math.PI);
+        var isVertical = trunkAngleDeg < 15;
+        
+        // Species info (display only, no clamping)
+        var selectedSpecies = this._getSelectedSpecies();
+        
+        // Confidence: reference method is very accurate
+        var confidence = 92;
+        if (refPixels < 20) confidence -= 8;  // Small reference = less precision
+        if (trunkPixels < 8) confidence -= 5;  // Very thin trunk
+        if (verticalSeparation > 0.3) confidence -= 5; // Large perspective gap
+        confidence = Math.max(60, Math.min(98, confidence));
+        
+        // Draw overlay
+        this._drawReferenceOverlay(canvas, refPoint1, refPoint2, trunkPoint1, trunkPoint2, 
+            refSizeCm, refName, trunkDiameterCm, circumferenceCm, estimatedHeightCm, cmPerPixel);
+        
+        return {
+            height: estimatedHeightCm,
+            trunkWidth: trunkDiameterCm,
+            circumference: circumferenceCm.toFixed(1),
+            diameter: trunkDiameterCm,
+            girth: circumferenceCm.toFixed(1),
+            estimatedDistance: '-',
+            confidence: confidence,
+            methodDetails: [{
+                name: '📏 Reference Scale',
+                value: circumferenceCm,
+                weight: 1,
+                label: refName + ' (' + refSizeCm + 'cm) → ' + cmPerPixel.toFixed(3) + ' cm/px → Trunk: ' + trunkDiameterCm + 'cm'
+            }],
+            realWorldData: {
+                measurementBasis: 'Reference object scaling (exact)',
+                referenceUsed: refName + ' (' + refSizeCm + ' cm)',
+                referencePixels: Math.round(refPixels) + 'px',
+                trunkPixels: Math.round(trunkPixels) + 'px',
+                cmPerPixel: cmPerPixel.toFixed(4),
+                perspectiveCorrection: (perspectiveCorrection * 100).toFixed(1) + '%',
+                trunkAngle: Math.round(trunkAngleDeg) + '° from horizontal'
+            },
+            accuracyTips: [
+                '✅ Reference object used — HIGH accuracy measurement',
+                perspectiveCorrection !== 1.0 ? '📐 Perspective correction applied (' + (perspectiveCorrection * 100).toFixed(1) + '%)' : '✅ Reference and trunk at same depth — excellent',
+                isVertical ? '✅ Trunk appears vertical' : '📐 Tilted trunk (' + Math.round(trunkAngleDeg) + '°) — measured correctly',
+                'Scale: 1 pixel = ' + cmPerPixel.toFixed(3) + ' cm'
+            ],
+            bounds: {
+                x: Math.min(trunkPoint1.x, trunkPoint2.x) - 20,
+                y: 0,
+                width: Math.abs(trunkDx) + 40,
+                height: imgH,
+                trunkLeft: Math.min(trunkPoint1.x, trunkPoint2.x),
+                trunkRight: Math.max(trunkPoint1.x, trunkPoint2.x),
+                trunkCenterX: trunkMidX,
+                trunkWidthPx: Math.round(trunkPixels),
+                breastHeightY: trunkMidY
+            },
+            validation: null,
+            species: selectedSpecies,
+            processingTime: '0',
+            deeplabUsed: false,
+            deeplabTreePercent: null,
+            isManual: true,
+            referenceMethod: true
+        };
+    }
+    
+    // Helper: get selected species name
+    _getSelectedSpecies() {
         var selectedSpecies = null;
         try {
             var treeSpeciesSelect = document.getElementById('treeSpecies');
@@ -1554,54 +1654,236 @@ class AdvancedTreeML {
                 selectedSpecies = treeSearchInput.value;
             }
         } catch(e) {}
+        return selectedSpecies;
+    }
+    
+    // Draw reference + trunk overlay
+    _drawReferenceOverlay(canvas, rp1, rp2, tp1, tp2, refSizeCm, refName, diameter, circumference, height, cmPerPx) {
+        var ctx = canvas.getContext('2d');
         
-        // Species calibration
-        if (selectedSpecies) {
-            var speciesData = this._getSpeciesCircumference(selectedSpecies);
-            if (circumferenceCm < speciesData.min * 0.5) {
-                circumferenceCm = Math.max(circumferenceCm, speciesData.min * 0.7);
-            } else if (circumferenceCm > speciesData.max * 1.5) {
-                circumferenceCm = Math.min(circumferenceCm, speciesData.max * 1.2);
-            }
+        // ===== Draw Reference Object markers =====
+        var refMidX = (rp1.x + rp2.x) / 2;
+        var refMidY = (rp1.y + rp2.y) / 2;
+        
+        // Reference line
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2.5;
+        ctx.setLineDash([]);
+        ctx.beginPath();
+        ctx.moveTo(rp1.x, rp1.y);
+        ctx.lineTo(rp2.x, rp2.y);
+        ctx.stroke();
+        
+        // Reference points
+        [rp1, rp2].forEach(function(pt, i) {
+            ctx.shadowColor = '#f59e0b';
+            ctx.shadowBlur = 8;
+            ctx.fillStyle = '#f59e0b';
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 7, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 7, 0, 2 * Math.PI);
+            ctx.stroke();
+        });
+        
+        // Reference label
+        this._drawPillLabel(ctx, '📏 ' + refName + ': ' + refSizeCm + ' cm', refMidX - 60, refMidY - 20, 'rgba(245,158,11,0.9)');
+        
+        // ===== Draw Trunk markers =====
+        var tMidX = (tp1.x + tp2.x) / 2;
+        var tMidY = (tp1.y + tp2.y) / 2;
+        var tdx = tp2.x - tp1.x;
+        var tdy = tp2.y - tp1.y;
+        var tLen = Math.sqrt(tdx * tdx + tdy * tdy);
+        var tnx = tdx / (tLen || 1);
+        var tny = tdy / (tLen || 1);
+        var ext = 12;
+        
+        // Trunk measurement line (extended slightly)
+        ctx.strokeStyle = '#e74c3c';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(tp1.x - tnx * ext, tp1.y - tny * ext);
+        ctx.lineTo(tp2.x + tnx * ext, tp2.y + tny * ext);
+        ctx.stroke();
+        
+        // Trunk points
+        [tp1, tp2].forEach(function(pt, i) {
+            ctx.shadowColor = i === 0 ? '#3b82f6' : '#ef4444';
+            ctx.shadowBlur = 10;
+            ctx.fillStyle = i === 0 ? '#3b82f6' : '#ef4444';
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 8, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(pt.x, pt.y, 8, 0, 2 * Math.PI);
+            ctx.stroke();
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(i === 0 ? 'L' : 'R', pt.x, pt.y + 4);
+        });
+        
+        // Perpendicular ticks
+        var perpX = -tny * 10;
+        var perpY = tnx * 10;
+        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+        ctx.lineWidth = 2;
+        [tp1, tp2].forEach(function(pt) {
+            ctx.beginPath();
+            ctx.moveTo(pt.x - perpX, pt.y - perpY);
+            ctx.lineTo(pt.x + perpX, pt.y + perpY);
+            ctx.stroke();
+        });
+        
+        // Labels
+        this._drawPillLabel(ctx, '📏 REFERENCE METHOD', 10, 30, 'rgba(16,185,129,0.9)');
+        this._drawPillLabel(ctx, 'Diameter: ' + diameter + ' cm', tMidX - 60, tMidY + 28, '#2980b9');
+        this._drawPillLabel(ctx, 'Circumference: ' + circumference + ' cm', tMidX - 60, tMidY + 54, '#c0392b');
+        if (height) {
+            this._drawPillLabel(ctx, 'Height: ~' + height + ' cm', tMidX - 60, tMidY - 28, '#27ae60');
+        }
+        this._drawPillLabel(ctx, '1px = ' + cmPerPx.toFixed(3) + ' cm', 10, 56, 'rgba(245,158,11,0.8)');
+        
+        // Center dot
+        ctx.fillStyle = '#e74c3c';
+        ctx.beginPath();
+        ctx.arc(tMidX, tMidY, 4, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(tMidX, tMidY, 4, 0, 2 * Math.PI);
+        ctx.stroke();
+    }
+    
+    // ===== METHOD 2: DISTANCE-BASED (with user distance) =====
+    manualMeasureFromPoints(canvas, point1, point2, imageFile, userDistanceCm) {
+        // *** USE EUCLIDEAN DISTANCE — works for tilted/angled trees ***
+        var dx = point2.x - point1.x;
+        var dy = point2.y - point1.y;
+        var trunkWidthPx = Math.sqrt(dx * dx + dy * dy);
+        var midY = (point1.y + point2.y) / 2;
+        var midX = (point1.x + point2.x) / 2;
+        var trunkCenterX = midX;
+        
+        // Calculate angle of trunk from vertical (for info display)
+        var trunkAngleDeg = Math.abs(Math.atan2(Math.abs(dx), Math.abs(dy)) * 180 / Math.PI);
+        var isVertical = trunkAngleDeg < 15;
+        // For diameter measurement, we need the HORIZONTAL width (perpendicular to trunk axis)
+        // If trunk is tilted, the user taps left and right edges — the perpendicular distance IS the diameter
+        // So Euclidean distance between edge points = actual visible diameter width
+        
+        if (trunkWidthPx < 2) {
+            throw new Error('Points are too close! Tap the LEFT and RIGHT edges of the trunk.');
         }
         
+        // Image dimensions
+        var imgW = canvas.width;
+        var imgH = canvas.height;
+        var fov = this.cameraParams.fovHorizontal || 65;
+        var fovRad = (fov * Math.PI) / 180;
+        
+        // Use user-provided distance, or default
+        var distanceCm = userDistanceCm || this.DEFAULT_DISTANCE_CM;
+        
+        // *** PINHOLE CAMERA MODEL for real-world measurement ***
+        // The visible field width at the distance = 2 * distance * tan(FOV/2)
+        // The trunk's real size = (trunkPixels / imagePixels) * fieldWidth
+        // We use the diagonal of the image for Euclidean pixel distance
+        var imgDiagPx = Math.sqrt(imgW * imgW + imgH * imgH);
+        
+        // For the measurement direction, compute the field of view along that direction
+        // angle of measurement line from horizontal
+        var lineAngle = Math.atan2(Math.abs(dy), Math.abs(dx));
+        // The FOV in the measurement direction (interpolate between horizontal and vertical FOV)
+        var fovVertical = this.cameraParams.fovVertical || 50;
+        var fovVertRad = (fovVertical * Math.PI) / 180;
+        // Effective FOV in the direction of measurement
+        var cosA = Math.cos(lineAngle);
+        var sinA = Math.sin(lineAngle);
+        // Field of view widths
+        var fieldW = 2 * distanceCm * Math.tan(fovRad / 2);
+        var fieldH = 2 * distanceCm * Math.tan(fovVertRad / 2);
+        
+        // Real-world size per pixel in the measurement direction
+        var pxSizeH = fieldW / imgW;  // cm per pixel horizontally
+        var pxSizeV = fieldH / imgH;  // cm per pixel vertically
+        
+        // The real width = sqrt( (dx * pxSizeH)^2 + (dy * pxSizeV)^2 )
+        var realDx = dx * pxSizeH;
+        var realDy = dy * pxSizeV;
+        var trunkDiameterCm = Math.sqrt(realDx * realDx + realDy * realDy);
+        
+        // Circumference from diameter (circular cross-section: C = π × d)
+        var circumferenceCm = trunkDiameterCm * Math.PI;
+        
+        // Round to 1 decimal
+        trunkDiameterCm = Math.round(trunkDiameterCm * 10) / 10;
         circumferenceCm = Math.round(circumferenceCm * 10) / 10;
-        var diameterCm = Math.round((circumferenceCm / Math.PI) * 10) / 10;
+        
+        // Height estimation
+        var estimatedHeightCm = this._estimateHeightFromCanvas(canvas, midY);
+        
+        // Get species info (for display only, NOT for clamping values)
+        var selectedSpecies = this._getSelectedSpecies();
+        
+        // NO species clamping — we return the RAW real measured value
+        
+        // Confidence calculation
+        var confidence = 85;
+        if (!userDistanceCm) confidence -= 25; // No user distance = much lower confidence
+        if (trunkWidthPx < 10) confidence -= 10; // Very small selection
+        if (trunkAngleDeg > 30) confidence -= 5; // Heavily tilted
+        confidence = Math.max(30, Math.min(95, confidence));
         
         // Draw manual selection overlay
-        this._drawManualOverlay(canvas, point1, point2, circumferenceCm, diameterCm, estimatedHeightCm);
+        this._drawManualOverlay(canvas, point1, point2, circumferenceCm, trunkDiameterCm, estimatedHeightCm);
+        
+        var distMeters = (distanceCm / 100).toFixed(1);
         
         return {
             height: estimatedHeightCm,
-            trunkWidth: diameterCm,
+            trunkWidth: trunkDiameterCm,
             circumference: circumferenceCm.toFixed(1),
-            diameter: diameterCm,
+            diameter: trunkDiameterCm,
             girth: circumferenceCm.toFixed(1),
-            estimatedDistance: (distanceCm / 100).toFixed(1),
-            confidence: 70, // Manual selection is moderately reliable
+            estimatedDistance: distMeters,
+            confidence: confidence,
             methodDetails: [{
-                name: '✋ Manual Selection',
+                name: '✋ Manual Measurement',
                 value: circumferenceCm,
                 weight: 1,
-                label: 'User-selected trunk edges (' + trunkWidthPx + 'px width)'
+                label: 'Trunk edges (' + Math.round(trunkWidthPx) + 'px, ' + trunkDiameterCm + 'cm dia) @ ' + distMeters + 'm'
             }],
             realWorldData: {
-                measurementBasis: 'Manual trunk edge selection',
-                estimatedDistance: distanceCm / 100
+                measurementBasis: userDistanceCm ? 'Manual edges + user distance (' + distMeters + 'm)' : 'Manual edges + estimated distance',
+                estimatedDistance: parseFloat(distMeters),
+                trunkAngle: Math.round(trunkAngleDeg) + '° from horizontal',
+                pixelWidth: Math.round(trunkWidthPx) + 'px',
+                fovUsed: fov + '°'
             },
             accuracyTips: [
-                'For better accuracy, place a reference object (coin/card) on the trunk',
-                'Take the photo at chest height (1.37m) for standard DBH measurement'
+                userDistanceCm ? '✅ Distance provided — good accuracy' : '⚠️ Using default distance (2.5m) — enter actual distance for better accuracy',
+                'For best results: stand 1-3m away, keep phone level',
+                isVertical ? '✅ Trunk appears vertical — good measurement' : '📐 Trunk is tilted (' + Math.round(trunkAngleDeg) + '°) — measurement adjusted automatically'
             ],
             bounds: {
                 x: Math.min(point1.x, point2.x) - 20,
                 y: 0,
-                width: trunkWidthPx + 40,
+                width: Math.abs(dx) + 40,
                 height: imgH,
                 trunkLeft: Math.min(point1.x, point2.x),
                 trunkRight: Math.max(point1.x, point2.x),
                 trunkCenterX: trunkCenterX,
-                trunkWidthPx: trunkWidthPx,
+                trunkWidthPx: Math.round(trunkWidthPx),
                 breastHeightY: midY
             },
             validation: null,
@@ -1635,52 +1917,82 @@ class AdvancedTreeML {
     
     _drawManualOverlay(canvas, point1, point2, circumference, diameter, height) {
         var context = canvas.getContext('2d');
+        var midX = (point1.x + point2.x) / 2;
         var midY = (point1.y + point2.y) / 2;
-        var leftX = Math.min(point1.x, point2.x);
-        var rightX = Math.max(point1.x, point2.x);
         
-        // Draw measurement line
+        // Draw measurement line between actual points (supports tilted trunks)
         context.strokeStyle = '#e74c3c';
         context.lineWidth = 3;
         context.setLineDash([]);
+        
+        // Extend line slightly beyond points
+        var dx = point2.x - point1.x;
+        var dy = point2.y - point1.y;
+        var len = Math.sqrt(dx * dx + dy * dy);
+        var extendPx = 15;
+        var nx = dx / (len || 1);
+        var ny = dy / (len || 1);
+        
         context.beginPath();
-        context.moveTo(leftX - 10, midY);
-        context.lineTo(rightX + 10, midY);
+        context.moveTo(point1.x - nx * extendPx, point1.y - ny * extendPx);
+        context.lineTo(point2.x + nx * extendPx, point2.y + ny * extendPx);
         context.stroke();
         
-        // Arrow heads
-        this._drawArrowHead(context, leftX - 10, midY, 'right', 10);
-        this._drawArrowHead(context, rightX + 10, midY, 'left', 10);
+        // Arrow heads at extended ends
+        this._drawArrowHead(context, point1.x - nx * extendPx, point1.y - ny * extendPx, 'right', 10);
+        this._drawArrowHead(context, point2.x + nx * extendPx, point2.y + ny * extendPx, 'left', 10);
         
-        // Point markers
-        [point1, point2].forEach(function(pt) {
-            context.fillStyle = '#e74c3c';
+        // Point markers with glow
+        [point1, point2].forEach(function(pt, i) {
+            context.shadowColor = i === 0 ? '#3b82f6' : '#ef4444';
+            context.shadowBlur = 10;
+            context.fillStyle = i === 0 ? '#3b82f6' : '#ef4444';
             context.beginPath();
             context.arc(pt.x, pt.y, 8, 0, 2 * Math.PI);
             context.fill();
+            context.shadowBlur = 0;
             context.strokeStyle = 'white';
             context.lineWidth = 2;
             context.beginPath();
             context.arc(pt.x, pt.y, 8, 0, 2 * Math.PI);
             context.stroke();
+            context.fillStyle = 'white';
+            context.font = 'bold 10px Arial';
+            context.textAlign = 'center';
+            context.fillText(i === 0 ? 'L' : 'R', pt.x, pt.y + 4);
         });
         
-        // Labels
+        // Perpendicular tick marks at measurement points (shows trunk width direction)
+        var perpX = -ny * 12;
+        var perpY = nx * 12;
+        context.strokeStyle = 'rgba(255,255,255,0.5)';
+        context.lineWidth = 2;
+        [point1, point2].forEach(function(pt) {
+            context.beginPath();
+            context.moveTo(pt.x - perpX, pt.y - perpY);
+            context.lineTo(pt.x + perpX, pt.y + perpY);
+            context.stroke();
+        });
+        
+        // Labels — positioned near midpoint
+        var labelX = midX;
+        var labelY = midY;
         this._drawPillLabel(context, 'MANUAL MEASUREMENT', 10, 32, 'rgba(142, 68, 173, 0.9)');
-        this._drawPillLabel(context, 'Circumference: ' + circumference + ' cm', leftX, midY + 30, '#c0392b');
-        this._drawPillLabel(context, 'Diameter: ' + diameter + ' cm', leftX, midY + 56, '#2980b9');
-        this._drawPillLabel(context, 'Est. Height: ' + height + ' cm', leftX, midY - 30, '#27ae60');
+        this._drawPillLabel(context, 'Diameter: ' + diameter + ' cm', labelX - 60, labelY + 30, '#2980b9');
+        this._drawPillLabel(context, 'Circumference: ' + circumference + ' cm', labelX - 60, labelY + 56, '#c0392b');
+        if (height) {
+            this._drawPillLabel(context, 'Est. Height: ' + height + ' cm', labelX - 60, labelY - 30, '#27ae60');
+        }
         
         // Center marker
-        var cx = (leftX + rightX) / 2;
         context.strokeStyle = '#e74c3c';
         context.lineWidth = 2;
         context.beginPath();
-        context.arc(cx, midY, 6, 0, 2 * Math.PI);
+        context.arc(midX, midY, 6, 0, 2 * Math.PI);
         context.stroke();
         context.fillStyle = '#e74c3c';
         context.beginPath();
-        context.arc(cx, midY, 3, 0, 2 * Math.PI);
+        context.arc(midX, midY, 3, 0, 2 * Math.PI);
         context.fill();
     }
 }
