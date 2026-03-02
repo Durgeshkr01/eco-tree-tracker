@@ -1514,6 +1514,15 @@ class AdvancedTreeML {
     // User taps 2 points on a known-size reference + 2 points on trunk
     // Pure pixel-ratio math → real values. No distance needed.
     manualMeasureWithReference(canvas, refPoint1, refPoint2, trunkPoint1, trunkPoint2, refSizeCm, refName, imageFile) {
+        // *** Validate all inputs ***
+        var allPts = [refPoint1, refPoint2, trunkPoint1, trunkPoint2];
+        for (var i = 0; i < allPts.length; i++) {
+            if (!allPts[i] || isNaN(allPts[i].x) || isNaN(allPts[i].y)) {
+                console.error('Invalid point at index', i, allPts[i]);
+                throw new Error('Invalid point detected! Please reset and tap again carefully.');
+            }
+        }
+        
         // Calculate pixel distances (Euclidean — works for any angle)
         var refDx = refPoint2.x - refPoint1.x;
         var refDy = refPoint2.y - refPoint1.y;
@@ -1766,6 +1775,16 @@ class AdvancedTreeML {
     
     // ===== METHOD 2: DISTANCE-BASED (with user distance) =====
     manualMeasureFromPoints(canvas, point1, point2, imageFile, userDistanceCm) {
+        // *** Validate inputs ***
+        if (!point1 || !point2 || isNaN(point1.x) || isNaN(point1.y) || isNaN(point2.x) || isNaN(point2.y)) {
+            console.error('Invalid points:', point1, point2);
+            throw new Error('Invalid measurement points! Please reset and tap again.');
+        }
+        if (!canvas || !canvas.width || !canvas.height) {
+            console.error('Invalid canvas:', canvas ? {w: canvas.width, h: canvas.height} : 'null');
+            throw new Error('Canvas error! Please retake the photo.');
+        }
+        
         // *** USE EUCLIDEAN DISTANCE — works for tilted/angled trees ***
         var dx = point2.x - point1.x;
         var dy = point2.y - point1.y;
@@ -1824,6 +1843,29 @@ class AdvancedTreeML {
         
         // Circumference from diameter (circular cross-section: C = π × d)
         var circumferenceCm = trunkDiameterCm * Math.PI;
+        
+        // Debug log — helps trace NaN issues
+        console.log('Manual Measurement Debug:', {
+            point1, point2, dx, dy, trunkWidthPx,
+            imgW, imgH, fov, fovVertical, distanceCm,
+            fieldW, fieldH, pxSizeH, pxSizeV,
+            realDx, realDy, trunkDiameterCm, circumferenceCm
+        });
+        
+        // Final NaN safety — if any calc went wrong, use simple fallback
+        if (isNaN(trunkDiameterCm) || isNaN(circumferenceCm)) {
+            console.warn('NaN detected in measurement! Using pixel-ratio fallback.');
+            // Simple fallback: assume 1 pixel ≈ 0.5mm at typical phone distance
+            var fallbackDiameter = trunkWidthPx * 0.05;  // rough estimate
+            if (userDistanceCm) {
+                // Better fallback using simple proportion
+                var simpleFOV = 65;
+                var simpleFieldWidth = 2 * userDistanceCm * Math.tan((simpleFOV * Math.PI / 180) / 2);
+                fallbackDiameter = (trunkWidthPx / (imgW || 1000)) * simpleFieldWidth;
+            }
+            trunkDiameterCm = Math.round(fallbackDiameter * 10) / 10;
+            circumferenceCm = Math.round(trunkDiameterCm * Math.PI * 10) / 10;
+        }
         
         // Round to 1 decimal
         trunkDiameterCm = Math.round(trunkDiameterCm * 10) / 10;

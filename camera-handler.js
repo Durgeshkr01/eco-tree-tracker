@@ -432,66 +432,156 @@ function initializeCameraHandlers() {
             }
         }
         
-        // ===== Draw a point on canvas =====
+        // ===== Draw a point on canvas (BIG & VISIBLE) =====
         function drawPoint(ctx, x, y, color, label) {
-            // Glow
+            var radius = 14;
+            
+            // Outer ring glow (large, visible)
             ctx.shadowColor = color;
-            ctx.shadowBlur = 12;
+            ctx.shadowBlur = 20;
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(x, y, radius + 8, 0, 2 * Math.PI);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            
+            // Filled center dot with glow
+            ctx.shadowColor = color;
+            ctx.shadowBlur = 15;
             ctx.fillStyle = color;
             ctx.beginPath();
-            ctx.arc(x, y, 9, 0, 2 * Math.PI);
+            ctx.arc(x, y, radius, 0, 2 * Math.PI);
             ctx.fill();
             ctx.shadowBlur = 0;
             
-            // White border
+            // White border (thick)
             ctx.strokeStyle = 'white';
-            ctx.lineWidth = 2.5;
+            ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.arc(x, y, 9, 0, 2 * Math.PI);
+            ctx.arc(x, y, radius, 0, 2 * Math.PI);
             ctx.stroke();
             
-            // Crosshair
+            // Crosshair lines (long, visible)
             ctx.strokeStyle = color;
-            ctx.lineWidth = 1;
-            ctx.setLineDash([3, 3]);
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 3]);
             ctx.beginPath();
-            ctx.moveTo(x, y - 22); ctx.lineTo(x, y + 22);
+            ctx.moveTo(x, y - 35); ctx.lineTo(x, y - radius - 10);
             ctx.stroke();
             ctx.beginPath();
-            ctx.moveTo(x - 22, y); ctx.lineTo(x + 22, y);
+            ctx.moveTo(x, y + radius + 10); ctx.lineTo(x, y + 35);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x - 35, y); ctx.lineTo(x - radius - 10, y);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x + radius + 10, y); ctx.lineTo(x + 35, y);
             ctx.stroke();
             ctx.setLineDash([]);
             
-            // Label
+            // Label inside dot (bold, white)
             ctx.fillStyle = 'white';
-            ctx.font = 'bold 10px Arial';
+            ctx.font = 'bold 12px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(label, x, y + 4);
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, x, y);
+            ctx.textBaseline = 'alphabetic';
+            
+            // Label badge below the point (shows what this point is)
+            var labelText = '';
+            if (label === 'R1') labelText = '← Ref Left';
+            else if (label === 'R2') labelText = 'Ref Right →';
+            else if (label === 'T1') labelText = '← Trunk Left';
+            else if (label === 'T2') labelText = 'Trunk Right →';
+            else if (label === 'L') labelText = '← Left Edge';
+            else if (label === 'R') labelText = 'Right Edge →';
+            
+            if (labelText) {
+                ctx.font = 'bold 11px Arial';
+                var tw = ctx.measureText(labelText).width + 12;
+                var lx = x - tw / 2;
+                var ly = y + radius + 14;
+                
+                // Badge background
+                ctx.fillStyle = 'rgba(0,0,0,0.75)';
+                ctx.beginPath();
+                ctx.moveTo(lx + 4, ly);
+                ctx.lineTo(lx + tw - 4, ly);
+                ctx.arcTo(lx + tw, ly, lx + tw, ly + 4, 4);
+                ctx.lineTo(lx + tw, ly + 18);
+                ctx.arcTo(lx + tw, ly + 22, lx + tw - 4, ly + 22, 4);
+                ctx.lineTo(lx + 4, ly + 22);
+                ctx.arcTo(lx, ly + 22, lx, ly + 18, 4);
+                ctx.lineTo(lx, ly + 4);
+                ctx.arcTo(lx, ly, lx + 4, ly, 4);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Badge border
+                ctx.strokeStyle = color;
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                
+                // Badge text
+                ctx.fillStyle = color;
+                ctx.textAlign = 'center';
+                ctx.fillText(labelText, x, ly + 15);
+            }
         }
         
-        // ===== Draw line between two points =====
+        // ===== Draw line between two points (visible) =====
         function drawLine(ctx, p1, p2, color, dashed) {
+            // Shadow for visibility
+            ctx.shadowColor = 'rgba(0,0,0,0.5)';
+            ctx.shadowBlur = 4;
             ctx.strokeStyle = color;
-            ctx.lineWidth = 2;
-            if (dashed) ctx.setLineDash([5, 4]);
+            ctx.lineWidth = 3;
+            if (dashed) ctx.setLineDash([8, 5]);
             else ctx.setLineDash([]);
             ctx.beginPath();
             ctx.moveTo(p1.x, p1.y);
             ctx.lineTo(p2.x, p2.y);
             ctx.stroke();
+            ctx.shadowBlur = 0;
             ctx.setLineDash([]);
+            
+            // Midpoint distance label (pixel count)
+            var midX = (p1.x + p2.x) / 2;
+            var midY = (p1.y + p2.y) / 2;
+            var dist = Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+            var pxLabel = Math.round(dist) + 'px';
+            ctx.font = 'bold 10px Arial';
+            var tw = ctx.measureText(pxLabel).width + 8;
+            ctx.fillStyle = 'rgba(0,0,0,0.7)';
+            ctx.fillRect(midX - tw/2, midY - 16, tw, 16);
+            ctx.fillStyle = color;
+            ctx.textAlign = 'center';
+            ctx.fillText(pxLabel, midX, midY - 4);
         }
+        
+        // ===== Prevent double-tap (touch + click) =====
+        let lastTouchTime = 0;
         
         // ===== Canvas click handler =====
         function handleCanvasClick(e) {
             if (!manualSelectionMode) return;
+            
+            // Prevent click firing after touch (300ms guard)
+            if (e.type === 'click' && Date.now() - lastTouchTime < 500) {
+                return;
+            }
             
             const rect = canvas.getBoundingClientRect();
             const scaleX = canvas.width / rect.width;
             const scaleY = canvas.height / rect.height;
             
             let clientX, clientY;
-            if (e.touches && e.touches[0]) {
+            // For touchend, use changedTouches (touches is EMPTY on touchend!)
+            if (e.changedTouches && e.changedTouches[0]) {
+                clientX = e.changedTouches[0].clientX;
+                clientY = e.changedTouches[0].clientY;
+            } else if (e.touches && e.touches[0]) {
                 clientX = e.touches[0].clientX;
                 clientY = e.touches[0].clientY;
             } else {
@@ -499,10 +589,22 @@ function initializeCameraHandlers() {
                 clientY = e.clientY;
             }
             
+            // NaN guard — if coordinates are invalid, ignore the tap
+            if (clientX == null || clientY == null || isNaN(clientX) || isNaN(clientY)) {
+                console.warn('Invalid touch/click coordinates', { clientX, clientY, type: e.type });
+                return;
+            }
+            
             const x = (clientX - rect.left) * scaleX;
             const y = (clientY - rect.top) * scaleY;
             const point = { x: Math.round(x), y: Math.round(y) };
             const ctx = canvas.getContext('2d');
+            
+            // Final NaN guard on computed point
+            if (isNaN(point.x) || isNaN(point.y)) {
+                console.warn('Computed point is NaN', { x, y, clientX, clientY, rect });
+                return;
+            }
             
             // ===== REFERENCE PHASE =====
             if (currentPhase === 'ref-tap') {
@@ -628,6 +730,7 @@ function initializeCameraHandlers() {
         
         function handleCanvasTouch(e) {
             e.preventDefault();
+            lastTouchTime = Date.now();
             handleCanvasClick(e);
         }
         
