@@ -4,7 +4,6 @@
 class TreeCalculator {
     constructor() {
         // Constants
-        this.CARBON_PRICE_PER_TON = 1500; // ₹1500 per ton CO2 (conservative Indian valuation)
         this.OXYGEN_PER_PERSON_YEAR = 730; // kg per person per year
         this.CAR_EMISSION_PER_KM = 0.12; // kg CO2 per km
         this.HOME_ENERGY_PER_DAY = 10; // kg CO2 per day
@@ -62,13 +61,6 @@ class TreeCalculator {
         return co2 * 0.02;
     }
 
-    // Calculate Economic Value (Carbon Credits)
-    calculateEconomicValue(co2) {
-        // Convert kg to tons and multiply by price
-        const co2Tons = co2 / 1000;
-        return co2Tons * this.CARBON_PRICE_PER_TON;
-    }
-
     // Calculate environmental equivalents
     calculateEquivalents(co2, oxygen) {
         return {
@@ -96,8 +88,6 @@ class TreeCalculator {
         // Step 8: Pollution absorption (using CO2)
         const pollution = this.calculatePollutionAbsorption(co2);
         
-        // Step 9: Economic value
-        const economicValue = this.calculateEconomicValue(co2);
         const equivalents = this.calculateEquivalents(co2, oxygen);
 
         return {
@@ -110,7 +100,6 @@ class TreeCalculator {
             co2: co2.toFixed(2),
             oxygen: oxygen.toFixed(2),
             pollution: pollution.toFixed(2),
-            economicValue: economicValue.toFixed(2),
             equivalents: equivalents,
             inputs: {
                 circumference: circumferenceCm.toFixed(2),

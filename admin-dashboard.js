@@ -384,10 +384,6 @@ window.viewDetails = async (submissionId) => {
                 <span>${data.pollution || 'N/A'} kg/year</span>
             </div>
             <div class="detail-row">
-                <strong>Economic Value:</strong>
-                <span>₹${data.economicValue || 'N/A'}/year</span>
-            </div>
-            <div class="detail-row">
                 <strong>Submitted At:</strong>
                 <span>${new Date(data.timestamp).toLocaleString()}</span>
             </div>

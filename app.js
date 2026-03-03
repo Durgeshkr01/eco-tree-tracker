@@ -283,7 +283,6 @@ function displayResults(treeData, results, age, latitude, longitude) {
     document.getElementById('co2Tonnes').textContent = (parseFloat(results.co2) / 1000).toFixed(3);
     document.getElementById('oxygenValue').textContent = results.oxygen;
     document.getElementById('pollutionValue').textContent = results.pollution;
-    document.getElementById('economicValue').textContent = results.economicValue;
 
     // Update equivalents
     document.getElementById('peopleEquivalent').textContent = results.equivalents.people;
@@ -383,7 +382,6 @@ async function submitToAdmin(treeData, results, age, latitude, longitude) {
             co2: results.co2,
             oxygen: results.oxygen,
             pollution: results.pollution,
-            economicValue: results.economicValue,
             timestamp: new Date().toISOString()
         };
         
@@ -499,7 +497,6 @@ document.getElementById('exportExcel').addEventListener('click', () => {
             'CO₂ Equivalent (tonnes)': (parseFloat(calc.results.co2) / 1000).toFixed(3),
             'Oxygen Produced (kg/year)': calc.results.oxygen,
             'Pollution Absorbed (kg/year)': calc.results.pollution,
-            'Economic Value (₹/year)': calc.results.economicValue,
             'People Oxygen Equivalent': calc.results.equivalents.people,
             'Car KM Offset': calc.results.equivalents.carKm,
             'Home Days Offset': calc.results.equivalents.homeDays
@@ -528,7 +525,6 @@ document.getElementById('exportExcel').addEventListener('click', () => {
         { wch: 22 }, // CO2 tonnes
         { wch: 25 }, // Oxygen
         { wch: 25 }, // Pollution
-        { wch: 22 }, // Economic Value
         { wch: 22 }, // People Oxygen
         { wch: 15 }, // Car KM
         { wch: 15 }  // Home Days
@@ -565,7 +561,6 @@ document.getElementById('downloadPDF').addEventListener('click', () => {
     const co2Val = document.getElementById('co2Value').textContent || '0';
     const oxygen = document.getElementById('oxygenValue').textContent || '0';
     const pollution = document.getElementById('pollutionValue').textContent || '0';
-    const economic = document.getElementById('economicValue').textContent || '0';
     const people = document.getElementById('peopleEquivalent').textContent || '0';
     const car = document.getElementById('carEquivalent').textContent || '0';
     const home = document.getElementById('homeEquivalent').textContent || '0';
@@ -634,8 +629,7 @@ document.getElementById('downloadPDF').addEventListener('click', () => {
         { title: 'Carbon Stored', value: carbon, unit: 'kg C', color: [149, 165, 166] },
         { title: 'CO2 Sequestration', value: co2Val, unit: 'kg CO2/year', color: [52, 152, 219] },
         { title: 'Oxygen Production', value: oxygen, unit: 'kg O2/year', color: [26, 188, 156] },
-        { title: 'Air Pollution Removed', value: pollution, unit: 'kg/year', color: [231, 76, 60] },
-        { title: 'Economic Value', value: economic, unit: 'Rs/year', color: [46, 204, 113] }
+        { title: 'Air Pollution Removed', value: pollution, unit: 'kg/year', color: [231, 76, 60] }
     ];
     
     let cardX = 15;

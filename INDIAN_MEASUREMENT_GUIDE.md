@@ -72,6 +72,77 @@
 
 ---
 
+## 📐 DBH Measurement Rules for Special Cases (FSI Standard)
+
+Different tree conditions require different approaches. Always follow these FSI-prescribed rules for correct DBH measurement:
+
+![DBH Measurement Rules](images/dbh-measurement-rules.svg)
+
+---
+
+### **(a) Normal Tree on Flat Ground**
+- Measure at exactly **1.3 m** from ground level on any side.
+
+---
+
+### **(b) Tree on a Slope**
+- Measure at **1.3 m from the uphill side** of the trunk.
+- The uphill side is always the reference point — never the downhill side.
+
+---
+
+### **(c) Tree on a Concave/Eroded Slope**
+- Same rule as (b): measure **1.3 m from the uphill base** of the trunk.
+- If roots are exposed on the downhill side, ignore them and take the uphill base as ground level.
+
+---
+
+### **(d) Leaning Tree**
+- Measure **1.3 m along the trunk** from the base (not vertically from the ground).
+- Follow the trunk length, not the straight vertical height.
+
+---
+
+### **(e) Tree with Swelling or Irregular Trunk at 1.3 m**
+- If the trunk has a **swelling, lump, or branch** at 1.3 m, **move the measurement point above** the irregularity.
+- Measure at the **narrowest normal point** just above the swelling.
+
+---
+
+### **(f) Tree with Buttress Roots or Large Surface Roots**
+- Buttress roots growing up the base can raise the effective trunk start.
+- Measure **at least 30 cm above** the top of the buttress/roots.
+- Measurement point must always be **more than 1.0 m from the ground**.
+- If buttress is very tall (> 1 m), note it separately; consult FSI guidelines.
+
+---
+
+### **(g) Multi-Stem Tree — Stems Join Below 1.3 m**
+- If multiple stems emerge from the same base **and join below 1.3 m**, measure **below the point where they join** as a single trunk.
+- Treat it as one tree with one circumference.
+
+---
+
+### **(h) Multi-Stem Tree — Stems Split at or Above Ground**
+- If stems **fork at or above ground level before 1.3 m**, measure **each stem separately at 1.3 m**.
+- Record and calculate each stem as an individual tree, then sum the results.
+
+---
+
+### **Quick Reference Table**
+
+| Situation | Where to Measure |
+|-----------|-----------------|
+| Flat ground, normal tree | 1.3 m from ground |
+| Tree on slope | 1.3 m from **uphill** side |
+| Leaning tree | 1.3 m along trunk length |
+| Swelling/lump at 1.3 m | Above the swelling (narrowest point) |
+| Buttress/large roots | 30 cm above buttress, minimum 1.0 m height |
+| Multi-stems joining below 1.3 m | Below the join (single measurement) |
+| Multi-stems forking before 1.3 m | Each stem separately at 1.3 m |
+
+---
+
 ## 🌳 Species Selection
 
 ### **Why Species Matters?**

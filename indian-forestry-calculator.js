@@ -4,8 +4,6 @@
 
 class IndianForestryCalculator {
     constructor() {
-        // Indian Carbon Market Price (₹/ton CO2)
-        this.CARBON_PRICE_PER_TON = 1800; // Updated 2026 Indian carbon credit price
         this.OXYGEN_PER_PERSON_YEAR = 730; // kg O2/person/year
         this.CAR_EMISSION_PER_KM = 0.12; // kg CO2/km
         this.HOME_ENERGY_PER_DAY = 10; // kg CO2/day
@@ -193,12 +191,6 @@ class IndianForestryCalculator {
         return baseAbsorption * sizeMultiplier;
     }
 
-    // Calculate Economic Value (Indian Carbon Market)
-    calculateEconomicValue(co2Kg) {
-        const co2Tons = co2Kg / 1000;
-        return co2Tons * this.CARBON_PRICE_PER_TON;
-    }
-
     // Calculate Environmental Equivalents
     calculateEquivalents(co2Kg, oxygenKg) {
         return {
@@ -237,10 +229,7 @@ class IndianForestryCalculator {
         // Step 9: Pollution Absorption
         const pollution = this.calculatePollutionAbsorption(co2, dbhCm);
         
-        // Step 10: Economic Value
-        const economicValue = this.calculateEconomicValue(co2);
-        
-        // Step 11: Equivalents
+        // Step 10: Equivalents
         const equivalents = this.calculateEquivalents(co2, oxygen);
 
         return {
@@ -255,7 +244,6 @@ class IndianForestryCalculator {
             co2Tonnes: (co2 / 1000).toFixed(3),
             oxygen: oxygen.toFixed(2),
             pollution: pollution.toFixed(2),
-            economicValue: economicValue.toFixed(2),
             equivalents: equivalents,
             inputs: {
                 circumference: circumferenceCm.toFixed(2),
@@ -280,8 +268,7 @@ class IndianForestryCalculator {
                 "5. Carbon Storage = 47% of Total Biomass (IPCC standard)",
                 "6. CO₂ Equivalent = Carbon × 3.67 (molecular weight ratio)",
                 "7. O₂ Production = Carbon × 2.67 × Activity Factor",
-                "8. Air Pollution Absorption (PM2.5, NOx, SO2) based on leaf area",
-                "9. Economic Value using Indian Carbon Credit prices (₹1800/ton CO₂)"
+                "8. Air Pollution Absorption (PM2.5, NOx, SO2) based on leaf area"
             ],
             references: [
                 "Forest Survey of India (FSI) - State of Forest Report 2023",
