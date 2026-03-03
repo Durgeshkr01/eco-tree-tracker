@@ -93,6 +93,56 @@ function showCameraGuide() {
                 </div>
             </div>
 
+            <!-- DBH Measurement Rules Section -->
+            <div style="background: rgba(16,185,129,0.07); border: 2px solid rgba(16,185,129,0.25); border-radius: 16px; padding: 18px; margin: 18px 0; text-align: left;">
+                <h3 style="color: #10b981; font-size: 1.15rem; margin-bottom: 14px; text-align: center;">
+                    <i class="fas fa-ruler-vertical"></i> DBH Measurement Rules — Special Cases
+                </h3>
+                <p style="color: rgba(255,255,255,0.6); font-size: 0.82rem; text-align: center; margin-bottom: 14px;">
+                    FSI Standard — Where exactly to measure on different tree types
+                </p>
+                <!-- SVG Diagram -->
+                <div style="background: white; border-radius: 10px; padding: 8px; margin-bottom: 16px;">
+                    <img src="images/dbh-measurement-rules.svg" alt="DBH Measurement Rules Diagram" style="width: 100%; height: auto; display: block; border-radius: 6px;">
+                </div>
+
+                <!-- Quick Rules List -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.82rem;">
+                    <div style="background: rgba(16,185,129,0.1); border-radius: 8px; padding: 10px; border-left: 3px solid #10b981;">
+                        <strong style="color: #34d399;">(a) Normal Tree</strong><br>
+                        <span style="color: rgba(255,255,255,0.75);">Measure at 1.3 m from ground</span>
+                    </div>
+                    <div style="background: rgba(16,185,129,0.1); border-radius: 8px; padding: 10px; border-left: 3px solid #10b981;">
+                        <strong style="color: #34d399;">(b) On Slope</strong><br>
+                        <span style="color: rgba(255,255,255,0.75);">1.3 m from <em>uphill</em> side only</span>
+                    </div>
+                    <div style="background: rgba(16,185,129,0.1); border-radius: 8px; padding: 10px; border-left: 3px solid #10b981;">
+                        <strong style="color: #34d399;">(c) Concave Slope</strong><br>
+                        <span style="color: rgba(255,255,255,0.75);">Uphill base = ground reference</span>
+                    </div>
+                    <div style="background: rgba(16,185,129,0.1); border-radius: 8px; padding: 10px; border-left: 3px solid #10b981;">
+                        <strong style="color: #34d399;">(d) Leaning Tree</strong><br>
+                        <span style="color: rgba(255,255,255,0.75);">1.3 m along trunk, not vertical</span>
+                    </div>
+                    <div style="background: rgba(251,191,36,0.1); border-radius: 8px; padding: 10px; border-left: 3px solid #fbbf24;">
+                        <strong style="color: #fcd34d;">(e) Swelling at 1.3 m</strong><br>
+                        <span style="color: rgba(255,255,255,0.75);">Measure above the irregularity</span>
+                    </div>
+                    <div style="background: rgba(251,191,36,0.1); border-radius: 8px; padding: 10px; border-left: 3px solid #fbbf24;">
+                        <strong style="color: #fcd34d;">(f) Buttress Roots</strong><br>
+                        <span style="color: rgba(255,255,255,0.75);">+30 cm above roots, min &gt;1.0 m</span>
+                    </div>
+                    <div style="background: rgba(96,165,250,0.1); border-radius: 8px; padding: 10px; border-left: 3px solid #60a5fa;">
+                        <strong style="color: #93c5fd;">(g) Stems Join &lt;1.3 m</strong><br>
+                        <span style="color: rgba(255,255,255,0.75);">Single measure below the join</span>
+                    </div>
+                    <div style="background: rgba(96,165,250,0.1); border-radius: 8px; padding: 10px; border-left: 3px solid #60a5fa;">
+                        <strong style="color: #93c5fd;">(h) Stems Fork &lt;1.3 m</strong><br>
+                        <span style="color: rgba(255,255,255,0.75);">Each stem separately at 1.3 m</span>
+                    </div>
+                </div>
+            </div>
+
             <div style="background: rgba(16,185,129,0.07); border: 1px solid rgba(16,185,129,0.2); border-radius: 12px; padding: 12px 16px; margin: 10px 0; text-align: left; font-size: 0.88rem; color: rgba(255,255,255,0.7);">
                 <i class="fas fa-lightbulb" style="color:#fbbf24;"></i>
                 <strong style="color:#fbbf24;"> Pro Tip:</strong>
@@ -146,8 +196,8 @@ if (!document.getElementById('cameraGuideStyles')) {
 
 // Auto-show guide when camera button is clicked
 window.addEventListener('DOMContentLoaded', () => {
-    // v2 = English guide — show once for updated version
-    const GUIDE_VERSION = 'cameraGuideShown_v2';
+    // v3 = DBH rules added — show once for updated version
+    const GUIDE_VERSION = 'cameraGuideShown_v3';
 
     const openCameraBtn = document.getElementById('openCameraBtn');
     if (openCameraBtn) {
@@ -176,6 +226,6 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // Add "Show Guide Again" option
 window.showCameraGuideAgain = function() {
-    localStorage.removeItem('cameraGuideShown_v2');
+    localStorage.removeItem('cameraGuideShown_v3');
     showCameraGuide();
 };
