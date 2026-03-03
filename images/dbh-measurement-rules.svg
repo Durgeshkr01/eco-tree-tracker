@@ -1,196 +1,162 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 600" width="860" height="600" font-family="Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 650" width="900" height="650" font-family="Arial, sans-serif" font-size="13">
 
-  <!-- Background -->
-  <rect width="860" height="600" fill="#f8fffe" rx="12"/>
+  <!-- White background -->
+  <rect width="900" height="650" fill="white"/>
 
-  <!-- Title -->
-  <text x="430" y="30" text-anchor="middle" font-size="16" font-weight="bold" fill="#1a5c38">DBH Measurement Rules — FSI Standard</text>
-  <line x1="40" y1="40" x2="820" y2="40" stroke="#2d8b57" stroke-width="1.5"/>
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- ROW 1: (a) (b) (c) (d) -->
+  <!-- ══════════════════════════════════════════════════════ -->
 
-  <!-- ═══════════════════════════════════════════ -->
-  <!-- ROW 1 -->
-  <!-- ═══════════════════════════════════════════ -->
+  <!-- ─── (a) Normal tree, flat ground ─── -->
+  <line x1="10" y1="195" x2="200" y2="195" stroke="black" stroke-width="2.5"/>
+  <rect x="65" y="70" width="60" height="125" fill="#c8c8c8" stroke="black" stroke-width="1.5"/>
+  <line x1="45" y1="90" x2="145" y2="90" stroke="black" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <line x1="148" y1="90" x2="148" y2="195" stroke="black" stroke-width="1.5"/>
+  <polygon points="148,90 144,102 152,102" fill="black"/>
+  <polygon points="148,195 144,183 152,183" fill="black"/>
+  <text x="152" y="148" font-size="12" fill="black">1.3 m</text>
+  <text x="95" y="220" text-anchor="middle" font-size="14" fill="black">(a)</text>
 
-  <!-- (a) Normal Tree on flat ground -->
-  <!-- box -->
-  <rect x="20" y="55" width="180" height="220" fill="#eaf7f0" rx="8" stroke="#b2dfce" stroke-width="1"/>
-  <!-- trunk -->
-  <polygon points="75,70 105,70 110,195 70,195" fill="#b5895a" stroke="#7a5230" stroke-width="1.2"/>
-  <!-- ground -->
-  <line x1="30" y1="210" x2="185" y2="210" stroke="#444" stroke-width="2.5"/>
-  <rect x="20" y="210" width="170" height="12" fill="#c8a96e" opacity="0.3"/>
-  <!-- 1.3m arrow -->
-  <line x1="115" y1="119" x2="155" y2="119" stroke="#e63946" stroke-width="1.5" stroke-dasharray="4,2"/>
-  <line x1="115" y1="210" x2="155" y2="210" stroke="#e63946" stroke-width="1.5"/>
-  <line x1="150" y1="119" x2="150" y2="210" stroke="#e63946" stroke-width="1.8" marker-end="url(#arr)" marker-start="url(#arrr)"/>
-  <text x="155" y="168" font-size="11" fill="#e63946" font-weight="bold">1.3 m</text>
-  <!-- measure dot -->
-  <circle cx="90" cy="119" r="4" fill="#e63946"/>
-  <!-- label -->
-  <text x="110" y="238" text-anchor="middle" font-size="13" font-weight="bold" fill="#1a5c38">(a) Normal Tree</text>
-  <text x="110" y="253" text-anchor="middle" font-size="10" fill="#555">Flat ground</text>
-  <text x="110" y="267" text-anchor="middle" font-size="10" fill="#555">Measure at 1.3 m</text>
+  <!-- ─── (b) Tree on slope ─── -->
+  <line x1="210" y1="205" x2="430" y2="165" stroke="black" stroke-width="2.5"/>
+  <polygon points="278,68 334,68 340,205 272,205" fill="#c8c8c8" stroke="black" stroke-width="1.5"/>
+  <line x1="258" y1="88" x2="358" y2="88" stroke="black" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <line x1="355" y1="88" x2="355" y2="205" stroke="black" stroke-width="1.5"/>
+  <polygon points="355,88 351,100 359,100" fill="black"/>
+  <polygon points="355,205 351,193 359,193" fill="black"/>
+  <text x="359" y="152" font-size="12" fill="black">1.3 m</text>
+  <text x="315" y="230" text-anchor="middle" font-size="14" fill="black">(b)</text>
 
-  <!-- (b) Tree on Slope -->
-  <rect x="215" y="55" width="180" height="220" fill="#eaf7f0" rx="8" stroke="#b2dfce" stroke-width="1"/>
-  <!-- sloped ground -->
-  <polygon points="225,215 395,180 395,222 225,222" fill="#c8a96e" opacity="0.5"/>
-  <line x1="225" y1="215" x2="395" y2="180" stroke="#444" stroke-width="2.5"/>
-  <!-- trunk on slope -->
-  <polygon points="275,80 305,80 310,215 270,215" fill="#b5895a" stroke="#7a5230" stroke-width="1.2"/>
-  <!-- measure from uphill (left) side -->
-  <line x1="225" y1="215" x2="225" y2="215"/>
-  <!-- 1.3m arrow from uphill ground -->
-  <line x1="315" y1="128" x2="355" y2="128" stroke="#e63946" stroke-width="1.5" stroke-dasharray="4,2"/>
-  <line x1="315" y1="215" x2="355" y2="215" stroke="#e63946" stroke-width="1.5"/>
-  <line x1="350" y1="128" x2="350" y2="215" stroke="#e63946" stroke-width="1.8"/>
-  <text x="355" y="175" font-size="11" fill="#e63946" font-weight="bold">1.3 m</text>
-  <circle cx="290" cy="128" r="4" fill="#e63946"/>
-  <!-- uphill label -->
-  <text x="238" y="210" font-size="9" fill="#2d8b57" font-weight="bold">↑ uphill</text>
-  <text x="305" y="238" text-anchor="middle" font-size="13" font-weight="bold" fill="#1a5c38">(b) On Slope</text>
-  <text x="305" y="253" text-anchor="middle" font-size="10" fill="#555">Measure from</text>
-  <text x="305" y="267" text-anchor="middle" font-size="10" fill="#555">uphill side</text>
+  <!-- ─── (c) Concave slope ─── -->
+  <path d="M440,205 Q510,232 600,192" fill="none" stroke="black" stroke-width="2.5"/>
+  <polygon points="494,68 550,68 556,205 488,205" fill="#c8c8c8" stroke="black" stroke-width="1.5"/>
+  <line x1="470" y1="88" x2="574" y2="88" stroke="black" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <line x1="570" y1="88" x2="570" y2="205" stroke="black" stroke-width="1.5"/>
+  <polygon points="570,88 566,100 574,100" fill="black"/>
+  <polygon points="570,205 566,193 574,193" fill="black"/>
+  <text x="574" y="152" font-size="12" fill="black">1.3 m</text>
+  <text x="514" y="250" text-anchor="middle" font-size="14" fill="black">(c)</text>
 
-  <!-- (c) Concave/Eroded Slope -->
-  <rect x="410" y="55" width="180" height="220" fill="#eaf7f0" rx="8" stroke="#b2dfce" stroke-width="1"/>
-  <!-- concave ground -->
-  <path d="M420,215 Q500,245 590,208" fill="none" stroke="#444" stroke-width="2.5"/>
-  <path d="M420,215 Q500,245 590,208 L590,222 L420,222 Z" fill="#c8a96e" opacity="0.4"/>
-  <!-- trunk -->
-  <polygon points="472,80 502,80 507,215 467,215" fill="#b5895a" stroke="#7a5230" stroke-width="1.2"/>
-  <!-- 1.3m from uphill -->
-  <line x1="510" y1="128" x2="548" y2="128" stroke="#e63946" stroke-width="1.5" stroke-dasharray="4,2"/>
-  <line x1="510" y1="215" x2="548" y2="215" stroke="#e63946" stroke-width="1.5"/>
-  <line x1="543" y1="128" x2="543" y2="215" stroke="#e63946" stroke-width="1.8"/>
-  <text x="548" y="175" font-size="11" fill="#e63946" font-weight="bold">1.3 m</text>
-  <circle cx="487" cy="128" r="4" fill="#e63946"/>
-  <text x="500" y="238" text-anchor="middle" font-size="13" font-weight="bold" fill="#1a5c38">(c) Concave Slope</text>
-  <text x="500" y="253" text-anchor="middle" font-size="10" fill="#555">Use uphill base</text>
-  <text x="500" y="267" text-anchor="middle" font-size="10" fill="#555">as ground reference</text>
+  <!-- ─── (d) Leaning tree ─── -->
+  <line x1="620" y1="205" x2="880" y2="205" stroke="black" stroke-width="2.5"/>
+  <!-- leaning trunk polygon -->
+  <polygon points="700,62 736,72 718,205 682,205" fill="#c8c8c8" stroke="black" stroke-width="1.5"/>
+  <!-- shaded top cut showing non-standard section -->
+  <polygon points="700,62 736,72 736,92 700,82" fill="#aaa" stroke="black" stroke-width="1"/>
+  <!-- 1.3m vertical arrow beside trunk -->
+  <line x1="664" y1="110" x2="664" y2="205" stroke="black" stroke-width="1.5"/>
+  <polygon points="664,110 660,122 668,122" fill="black"/>
+  <polygon points="664,205 660,193 668,193" fill="black"/>
+  <!-- dashed horizontal from measure point to trunk -->
+  <line x1="664" y1="110" x2="700" y2="110" stroke="black" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <text x="628" y="165" font-size="12" fill="black">1.3 m</text>
+  <text x="750" y="230" text-anchor="middle" font-size="14" fill="black">(d)</text>
 
-  <!-- (d) Leaning Tree -->
-  <rect x="605" y="55" width="180" height="220" fill="#eaf7f0" rx="8" stroke="#b2dfce" stroke-width="1"/>
-  <!-- ground -->
-  <line x1="615" y1="210" x2="780" y2="210" stroke="#444" stroke-width="2.5"/>
-  <rect x="605" y="210" width="180" height="12" fill="#c8a96e" opacity="0.3"/>
-  <!-- leaning trunk -->
-  <polygon points="680,72 706,78 688,212 662,212" fill="#b5895a" stroke="#7a5230" stroke-width="1.2"/>
-  <!-- 1.3m along trunk (angled) -->
-  <!-- mark 1.3m along trunk slope -->
-  <line x1="700" y1="122" x2="735" y2="115" stroke="#e63946" stroke-width="1.5" stroke-dasharray="4,2"/>
-  <circle cx="680" cy="124" r="4" fill="#e63946"/>
-  <!-- curved brace showing along-trunk measurement -->
-  <path d="M 665,210 C 640,165 650,130 668,126" fill="none" stroke="#e63946" stroke-width="1.8" stroke-dasharray="5,2"/>
-  <text x="630" y="175" font-size="11" fill="#e63946" font-weight="bold">1.3 m</text>
-  <text x="625" y="163" font-size="9" fill="#e63946">along trunk</text>
-  <text x="695" y="238" text-anchor="middle" font-size="13" font-weight="bold" fill="#1a5c38">(d) Leaning Tree</text>
-  <text x="695" y="253" text-anchor="middle" font-size="10" fill="#555">Along trunk length</text>
-  <text x="695" y="267" text-anchor="middle" font-size="10" fill="#555">not vertical height</text>
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- ROW 2: (e) (f) -->
+  <!-- ══════════════════════════════════════════════════════ -->
 
-  <!-- ═══════════════════════════════════════════ -->
-  <!-- ROW 2 -->
-  <!-- ═══════════════════════════════════════════ -->
+  <!-- ─── (e) Swelling / irregular trunk at DBH ─── -->
+  <line x1="60" y1="450" x2="320" y2="450" stroke="black" stroke-width="2.5"/>
+  <!-- trunk with bulge/swelling in middle -->
+  <path d="M140,270 L152,270 C158,305 170,328 174,355 C179,372 179,388 174,405 C168,425 156,436 152,450
+           L128,450 C124,436 112,425 106,405 C101,388 101,372 106,355 C110,328 122,305 128,270 Z"
+        fill="#c8c8c8" stroke="black" stroke-width="1.5"/>
+  <!-- dotted "Measure here" line above swelling -->
+  <line x1="100" y1="308" x2="200" y2="308" stroke="black" stroke-width="1.8" stroke-dasharray="5,3"/>
+  <text x="203" y="304" font-size="12" fill="black">Measure here</text>
+  <!-- 1.3m arrow at normal DBH height (where swelling is) -->
+  <line x1="222" y1="380" x2="222" y2="450" stroke="black" stroke-width="1.5"/>
+  <polygon points="222,380 218,392 226,392" fill="black"/>
+  <polygon points="222,450 218,438 226,438" fill="black"/>
+  <line x1="176" y1="380" x2="222" y2="380" stroke="black" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="225" y="422" font-size="12" fill="black">1.3 m</text>
+  <text x="180" y="475" text-anchor="middle" font-size="14" fill="black">(e)</text>
 
-  <!-- (e) Swelling at 1.3m -->
-  <rect x="20" y="300" width="180" height="240" fill="#eaf7f0" rx="8" stroke="#b2dfce" stroke-width="1"/>
-  <!-- ground -->
-  <line x1="30" y1="490" x2="185" y2="490" stroke="#444" stroke-width="2.5"/>
-  <rect x="20" y="490" width="170" height="12" fill="#c8a96e" opacity="0.3"/>
-  <!-- trunk with swelling -->
-  <path d="M75,320 Q72,380 60,400 Q55,410 60,425 Q72,440 78,490 L102,490 Q108,440 120,425 Q125,410 120,400 Q108,380 105,320 Z" fill="#b5895a" stroke="#7a5230" stroke-width="1.2"/>
-  <!-- where 1.3m would normally be (at swelling) -->
-  <line x1="40" y1="396" x2="58" y2="396" stroke="#999" stroke-width="1" stroke-dasharray="3,2"/>
-  <text x="30" y="394" font-size="8" fill="#999">✕ 1.3m</text>
-  <!-- measure above swelling -->
-  <line x1="122" y1="356" x2="155" y2="356" stroke="#e63946" stroke-width="1.5" stroke-dasharray="4,2"/>
-  <circle cx="106" cy="356" r="4" fill="#e63946"/>
-  <text x="156" y="360" font-size="10" fill="#e63946" font-weight="bold">Measure</text>
-  <text x="156" y="372" font-size="10" fill="#e63946" font-weight="bold">here ↑</text>
-  <text x="110" y="516" text-anchor="middle" font-size="13" font-weight="bold" fill="#1a5c38">(e) Trunk Swelling</text>
-  <text x="110" y="531" text-anchor="middle" font-size="10" fill="#555">Measure above</text>
-  <text x="110" y="545" text-anchor="middle" font-size="10" fill="#555">the irregularity</text>
-
-  <!-- (f) Buttress Roots -->
-  <rect x="215" y="300" width="180" height="240" fill="#eaf7f0" rx="8" stroke="#b2dfce" stroke-width="1"/>
-  <!-- ground -->
-  <line x1="225" y1="490" x2="395" y2="490" stroke="#444" stroke-width="2.5"/>
-  <rect x="215" y="490" width="180" height="12" fill="#c8a96e" opacity="0.3"/>
-  <!-- buttress roots (wide at base) -->
-  <polygon points="270,320 320,320 330,490 260,490" fill="#b5895a" stroke="#7a5230" stroke-width="1.2"/>
+  <!-- ─── (f) Buttress roots on slope ─── -->
+  <line x1="370" y1="450" x2="620" y2="405" stroke="black" stroke-width="2.5"/>
+  <!-- main trunk -->
+  <polygon points="450,270 494,270 500,420 444,425" fill="#c8c8c8" stroke="black" stroke-width="1.5"/>
   <!-- left buttress -->
-  <path d="M270,420 Q245,450 240,490" fill="none" stroke="#7a5230" stroke-width="8" stroke-linecap="round"/>
+  <path d="M450,368 Q428,395 422,420" fill="none" stroke="black" stroke-width="9" stroke-linecap="round"/>
   <!-- right buttress -->
-  <path d="M320,420 Q345,450 350,490" fill="none" stroke="#7a5230" stroke-width="8" stroke-linecap="round"/>
-  <!-- >1.0m line -->
-  <line x1="355" y1="420" x2="380" y2="420" stroke="#888" stroke-width="1" stroke-dasharray="3,2"/>
-  <line x1="355" y1="490" x2="380" y2="490" stroke="#888" stroke-width="1"/>
-  <line x1="373" y1="420" x2="373" y2="490" stroke="#888" stroke-width="1.5"/>
-  <text x="376" y="458" font-size="9" fill="#888">&gt;1.0m</text>
-  <!-- +30cm measure point -->
-  <line x1="332" y1="380" x2="352" y2="380" stroke="#e63946" stroke-width="1.5" stroke-dasharray="4,2"/>
-  <circle cx="320" cy="380" r="4" fill="#e63946"/>
-  <text x="228" y="378" font-size="9" fill="#e63946" font-weight="bold">Measure</text>
-  <text x="228" y="390" font-size="9" fill="#e63946" font-weight="bold">here</text>
-  <!-- +30cm bracket -->
-  <line x1="232" y1="418" x2="250" y2="418" stroke="#1565c0" stroke-width="1"/>
-  <line x1="232" y1="380" x2="250" y2="380" stroke="#1565c0" stroke-width="1"/>
-  <line x1="241" y1="380" x2="241" y2="418" stroke="#1565c0" stroke-width="1.5"/>
-  <text x="252" y="404" font-size="9" fill="#1565c0" font-weight="bold">+30cm</text>
-  <text x="305" y="516" text-anchor="middle" font-size="13" font-weight="bold" fill="#1a5c38">(f) Buttress Roots</text>
-  <text x="305" y="531" text-anchor="middle" font-size="10" fill="#555">+30 cm above buttress</text>
-  <text x="305" y="545" text-anchor="middle" font-size="10" fill="#555">minimum height &gt;1.0 m</text>
+  <path d="M494,364 Q514,390 520,408" fill="none" stroke="black" stroke-width="9" stroke-linecap="round"/>
+  <!-- "Measure here" dotted line above buttress -->
+  <line x1="432" y1="322" x2="512" y2="322" stroke="black" stroke-width="1.8" stroke-dasharray="5,3"/>
+  <text x="375" y="318" font-size="11" fill="black">Measure</text>
+  <text x="380" y="331" font-size="11" fill="black">here</text>
+  <!-- +30 cm bracket -->
+  <line x1="530" y1="322" x2="545" y2="322" stroke="black" stroke-width="1.2"/>
+  <line x1="530" y1="363" x2="545" y2="363" stroke="black" stroke-width="1.2"/>
+  <line x1="538" y1="322" x2="538" y2="363" stroke="black" stroke-width="1.5"/>
+  <polygon points="538,322 534,334 542,334" fill="black"/>
+  <polygon points="538,363 534,351 542,351" fill="black"/>
+  <text x="548" y="348" font-size="11" fill="black">+ 30 cm</text>
+  <!-- >1.0m bracket -->
+  <line x1="530" y1="363" x2="545" y2="363" stroke="black" stroke-width="1.2"/>
+  <line x1="530" y1="420" x2="545" y2="420" stroke="black" stroke-width="1.2"/>
+  <line x1="538" y1="363" x2="538" y2="420" stroke="black" stroke-width="1.5"/>
+  <text x="548" y="397" font-size="11" fill="black">&gt; 1.0 m</text>
+  <text x="490" y="475" text-anchor="middle" font-size="14" fill="black">(f)</text>
 
-  <!-- (g) Multi-stem joining BELOW 1.3m -->
-  <rect x="410" y="300" width="180" height="240" fill="#eaf7f0" rx="8" stroke="#b2dfce" stroke-width="1"/>
-  <!-- ground -->
-  <line x1="420" y1="490" x2="585" y2="490" stroke="#444" stroke-width="2.5"/>
-  <rect x="410" y="490" width="180" height="12" fill="#c8a96e" opacity="0.3"/>
-  <!-- single trunk -->
-  <polygon points="472,320 518,320 522,430 468,430" fill="#b5895a" stroke="#7a5230" stroke-width="1.2"/>
-  <!-- two stems diverging above join point (below 1.3m) -->
-  <polygon points="468,430 490,430 476,490 462,490" fill="#b5895a" stroke="#7a5230" stroke-width="1.2"/>
-  <polygon points="500,430 522,430 532,490 518,490" fill="#b5895a" stroke="#7a5230" stroke-width="1.2"/>
-  <!-- join line -->
-  <line x1="460" y1="430" x2="590" y2="430" stroke="#2d8b57" stroke-width="1" stroke-dasharray="4,2"/>
-  <text x="424" y="427" font-size="8" fill="#2d8b57">join point</text>
-  <!-- measure at 1.3m (single trunk, below join) -->
-  <line x1="524" y1="368" x2="558" y2="368" stroke="#e63946" stroke-width="1.5" stroke-dasharray="4,2"/>
-  <circle cx="517" cy="368" r="4" fill="#e63946"/>
-  <text x="560" y="364" font-size="9" fill="#e63946" font-weight="bold">Measure</text>
-  <text x="560" y="376" font-size="9" fill="#e63946" font-weight="bold">here</text>
-  <text x="500" y="516" text-anchor="middle" font-size="13" font-weight="bold" fill="#1a5c38">(g) Stems Join Below 1.3m</text>
-  <text x="500" y="531" text-anchor="middle" font-size="10" fill="#555">Single measurement</text>
-  <text x="500" y="545" text-anchor="middle" font-size="10" fill="#555">below the join</text>
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- "Trees with multiple stems" title -->
+  <!-- ══════════════════════════════════════════════════════ -->
+  <text x="450" y="502" text-anchor="middle" font-size="14" font-weight="bold" fill="black" text-decoration="underline">Trees with multiple stems</text>
 
-  <!-- (h) Multi-stem forking BEFORE 1.3m -->
-  <rect x="605" y="300" width="180" height="240" fill="#eaf7f0" rx="8" stroke="#b2dfce" stroke-width="1"/>
-  <!-- ground -->
-  <line x1="615" y1="490" x2="780" y2="490" stroke="#444" stroke-width="2.5"/>
-  <rect x="605" y="490" width="180" height="12" fill="#c8a96e" opacity="0.3"/>
-  <!-- left stem -->
-  <polygon points="638,320 660,320 656,490 634,490" fill="#b5895a" stroke="#7a5230" stroke-width="1.2"/>
-  <!-- right stem -->
-  <polygon points="730,320 752,320 756,490 728,490" fill="#b5895a" stroke="#7a5230" stroke-width="1.2"/>
-  <!-- 1.3m arrows for each stem -->
-  <!-- left stem -->
-  <line x1="662" y1="368" x2="678" y2="368" stroke="#e63946" stroke-width="1.5" stroke-dasharray="3,2"/>
-  <circle cx="648" cy="368" r="3.5" fill="#e63946"/>
-  <line x1="662" y1="490" x2="678" y2="490" stroke="#e63946" stroke-width="1.5"/>
-  <line x1="673" y1="368" x2="673" y2="490" stroke="#e63946" stroke-width="1.5"/>
-  <text x="676" y="432" font-size="9" fill="#e63946" font-weight="bold">1.3m</text>
-  <!-- right stem -->
-  <line x1="756" y1="368" x2="772" y2="368" stroke="#2d74c4" stroke-width="1.5" stroke-dasharray="3,2"/>
-  <circle cx="740" cy="368" r="3.5" fill="#2d74c4"/>
-  <line x1="756" y1="490" x2="772" y2="490" stroke="#2d74c4" stroke-width="1.5"/>
-  <line x1="767" y1="368" x2="767" y2="490" stroke="#2d74c4" stroke-width="1.5"/>
-  <text x="770" y="432" font-size="9" fill="#2d74c4" font-weight="bold">1.3m</text>
-  <text x="695" y="516" text-anchor="middle" font-size="13" font-weight="bold" fill="#1a5c38">(h) Stems Fork Before 1.3m</text>
-  <text x="695" y="531" text-anchor="middle" font-size="10" fill="#555">Measure each stem</text>
-  <text x="695" y="545" text-anchor="middle" font-size="10" fill="#555">separately at 1.3 m</text>
+  <!-- ══════════════════════════════════════════════════════ -->
+  <!-- ROW 3: (g) (h) -->
+  <!-- ══════════════════════════════════════════════════════ -->
 
-  <!-- Footer -->
-  <line x1="40" y1="575" x2="820" y2="575" stroke="#b2dfce" stroke-width="1"/>
-  <text x="430" y="591" text-anchor="middle" font-size="10" fill="#888">Source: Forest Survey of India (FSI) DBH Measurement Standards | EcoTree Tracker</text>
+  <!-- ─── (g) Stems join BELOW 1.3m ─── -->
+  <line x1="20" y1="630" x2="310" y2="630" stroke="black" stroke-width="2.5"/>
+  <!-- base single trunk -->
+  <polygon points="110,560 176,560 180,630 106,630" fill="#c8c8c8" stroke="black" stroke-width="1.5"/>
+  <!-- left stem above join -->
+  <polygon points="108,518 140,518 142,562 106,562" fill="#c8c8c8" stroke="black" stroke-width="1.5"/>
+  <!-- right stem above join -->
+  <polygon points="144,518 178,518 180,562 142,562" fill="#c8c8c8" stroke="black" stroke-width="1.5"/>
+  <!-- dotted "Measure here" line (below join on single trunk) -->
+  <line x1="88" y1="580" x2="188" y2="580" stroke="black" stroke-width="2" stroke-dasharray="5,3"/>
+  <text x="30" y="575" font-size="11" fill="black">Measure</text>
+  <text x="35" y="589" font-size="11" fill="black">here</text>
+  <!-- 1.3m arrow -->
+  <line x1="200" y1="580" x2="200" y2="630" stroke="black" stroke-width="1.5"/>
+  <polygon points="200,580 196,592 204,592" fill="black"/>
+  <polygon points="200,630 196,618 204,618" fill="black"/>
+  <text x="204" y="612" font-size="12" fill="black">1.3 m</text>
+  <text x="165" y="652" text-anchor="middle" font-size="14" fill="black">(g)</text>
+
+  <!-- ─── (h) Stems fork BEFORE 1.3m — measure each separately ─── -->
+  <line x1="420" y1="630" x2="900" y2="630" stroke="black" stroke-width="2.5"/>
+  <!-- left stem (slight lean left) -->
+  <polygon points="504,510 536,510 530,630 498,630" fill="#c8c8c8" stroke="black" stroke-width="1.5"/>
+  <!-- middle stem (straight) -->
+  <polygon points="648,510 680,510 678,630 650,630" fill="#c8c8c8" stroke="black" stroke-width="1.5"/>
+  <!-- right stem (slight lean right) -->
+  <polygon points="790,510 822,510 828,630 786,630" fill="#c8c8c8" stroke="black" stroke-width="1.5"/>
+
+  <!-- left stem 1.3m -->
+  <line x1="478" y1="557" x2="478" y2="630" stroke="black" stroke-width="1.5"/>
+  <polygon points="478,557 474,569 482,569" fill="black"/>
+  <polygon points="478,630 474,618 482,618" fill="black"/>
+  <line x1="478" y1="557" x2="502" y2="557" stroke="black" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="445" y="600" font-size="12" fill="black">1.3 m</text>
+
+  <!-- middle stem 1.3m -->
+  <line x1="622" y1="557" x2="622" y2="630" stroke="black" stroke-width="1.5"/>
+  <polygon points="622,557 618,569 626,569" fill="black"/>
+  <polygon points="622,630 618,618 626,618" fill="black"/>
+  <line x1="622" y1="557" x2="648" y2="557" stroke="black" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="589" y="600" font-size="12" fill="black">1.3 m</text>
+
+  <!-- right stem 1.3m -->
+  <line x1="764" y1="557" x2="764" y2="630" stroke="black" stroke-width="1.5"/>
+  <polygon points="764,557 760,569 768,569" fill="black"/>
+  <polygon points="764,630 760,618 768,618" fill="black"/>
+  <line x1="764" y1="557" x2="788" y2="557" stroke="black" stroke-width="1.5" stroke-dasharray="4,3"/>
+  <text x="731" y="600" font-size="12" fill="black">1.3 m</text>
+
+  <text x="660" y="652" text-anchor="middle" font-size="14" fill="black">(h)</text>
 
 </svg>
