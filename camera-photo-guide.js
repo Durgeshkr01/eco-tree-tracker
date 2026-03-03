@@ -103,7 +103,7 @@ function showCameraGuide() {
                 </p>
                 <!-- SVG Diagram -->
                 <div style="background: white; border-radius: 10px; padding: 8px; margin-bottom: 16px;">
-                    <img src="images/dbh-measurement-rules.svg" alt="DBH Measurement Rules Diagram" style="width: 100%; height: auto; display: block; border-radius: 6px;">
+                    <img src="images/WhatsApp Image 2026-03-03 at 3.09.25 PM.jpeg" alt="DBH Measurement Rules Diagram" style="width: 100%; height: auto; display: block; border-radius: 6px;">
                 </div>
 
                 <!-- Quick Rules List -->

@@ -76,7 +76,7 @@
 
 Different tree conditions require different approaches. Always follow these FSI-prescribed rules for correct DBH measurement:
 
-![DBH Measurement Rules](images/dbh-measurement-rules.svg)
+![DBH Measurement Rules](images/WhatsApp%20Image%202026-03-03%20at%203.09.25%20PM.jpeg)
 
 ---
 
