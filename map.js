@@ -104,13 +104,36 @@ function displayData(history) {
 
 // Display heat map
 function displayHeatMap(data) {
-    const heatData = data.map(item => {
+    // Group duplicate coordinates (e.g. when location is locked)
+    const coordGroups = {};
+    data.forEach((item, index) => {
+        const key = item.latitude + ',' + item.longitude;
+        if (!coordGroups[key]) coordGroups[key] = [];
+        coordGroups[key].push(index);
+    });
+
+    const heatData = data.map((item, index) => {
         const co2 = parseFloat(item.co2) || 0;
         // Intensity based on CO2 value - REVERSED for correct color mapping
         // High CO2 = high intensity = green (good)
         // Low CO2 = low intensity = red (needs attention)
         const intensity = Math.min(co2 / 150, 1);
-        return [item.latitude, item.longitude, intensity];
+
+        // Spread trees at the same location in a small circle so each shows individually
+        const key = item.latitude + ',' + item.longitude;
+        const group = coordGroups[key];
+        let lat = parseFloat(item.latitude);
+        let lng = parseFloat(item.longitude);
+
+        if (group.length > 1) {
+            const posInGroup = group.indexOf(index);
+            const angle = (2 * Math.PI * posInGroup) / group.length;
+            const radius = 0.00018; // ~20 metres — small enough to stay realistic
+            lat += radius * Math.sin(angle);
+            lng += radius * Math.cos(angle);
+        }
+
+        return [lat, lng, intensity];
     });
 
     heatLayer = L.heatLayer(heatData, {
@@ -131,7 +154,15 @@ function displayHeatMap(data) {
 
 // Display markers
 function displayMarkers(data) {
-    data.forEach(item => {
+    // Group duplicate coordinates so each marker gets a unique spread position
+    const coordGroups = {};
+    data.forEach((item, index) => {
+        const key = item.latitude + ',' + item.longitude;
+        if (!coordGroups[key]) coordGroups[key] = [];
+        coordGroups[key].push(index);
+    });
+
+    data.forEach((item, index) => {
         const co2 = parseFloat(item.co2) || 0;
         
         // Color based on CO2 level - HIGH is GOOD (green), LOW needs attention (red)
@@ -167,8 +198,19 @@ function displayMarkers(data) {
             iconAnchor: [17.5, 17.5]
         });
 
-        // Create marker
-        const marker = L.marker([item.latitude, item.longitude], { icon: markerIcon });
+        // Create marker — spread duplicates in a small circle
+        const mKey = item.latitude + ',' + item.longitude;
+        const mGroup = coordGroups[mKey];
+        let mLat = parseFloat(item.latitude);
+        let mLng = parseFloat(item.longitude);
+        if (mGroup.length > 1) {
+            const mPos = mGroup.indexOf(index);
+            const mAngle = (2 * Math.PI * mPos) / mGroup.length;
+            const mRadius = 0.00018;
+            mLat += mRadius * Math.sin(mAngle);
+            mLng += mRadius * Math.cos(mAngle);
+        }
+        const marker = L.marker([mLat, mLng], { icon: markerIcon });
 
         // Popup content
         const popupContent = `
