@@ -441,6 +441,59 @@ h3 {
     flex-wrap: wrap;
 }
 
+/* Share Dropdown */
+.share-dropdown-wrapper {
+    position: relative;
+}
+
+.share-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 6px;
+    background: var(--card-bg, #fff);
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+    overflow: hidden;
+    z-index: 100;
+    min-width: 160px;
+    animation: dropdownSlide 0.2s ease-out;
+}
+
+.share-dropdown.active {
+    display: flex;
+    flex-direction: column;
+}
+
+.share-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 18px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-color, #333);
+    transition: background 0.2s;
+}
+
+.share-option:hover {
+    background: rgba(0,0,0,0.06);
+}
+
+.share-option.whatsapp i {
+    color: #25D366;
+    font-size: 1.2rem;
+}
+
+.share-option.email i {
+    color: #EA4335;
+    font-size: 1.1rem;
+}
+
 /* Tree Summary */
 .tree-summary {
     background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.1));

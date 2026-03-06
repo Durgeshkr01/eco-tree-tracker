@@ -708,25 +708,57 @@ document.getElementById('downloadPDF').addEventListener('click', () => {
 });
 
 // Share functionality
-document.getElementById('shareBtn').addEventListener('click', () => {
-    const oxygenValue = document.getElementById('oxygenValue').textContent;
+function getFullShareText() {
     const treeName = document.getElementById('treeName').textContent;
+    const biomassValue = document.getElementById('biomassValue').textContent;
+    const agbValue = document.getElementById('agbValue').textContent;
+    const bgbValue = document.getElementById('bgbValue').textContent;
+    const carbonValue = document.getElementById('carbonValue').textContent;
+    const oxygenValue = document.getElementById('oxygenValue').textContent;
+    const pollutionValue = document.getElementById('pollutionValue').textContent;
+    const peopleEquivalent = document.getElementById('peopleEquivalent').textContent;
+    const carEquivalent = document.getElementById('carEquivalent').textContent;
+    const homeEquivalent = document.getElementById('homeEquivalent').textContent;
 
-    const shareText = `🌳 ${treeName} Impact:\n` +
-                     `💨 Oxygen Produced: ${oxygenValue} kg/year\n` +
-                     `\nCalculated using EcoTree Tracker`;
+    return `🌳 *${treeName} - Environmental Impact Report*\n\n` +
+           `⚖️ Total Biomass: ${biomassValue} kg\n` +
+           `   ▪ Above-ground: ${agbValue} kg\n` +
+           `   ▪ Below-ground: ${bgbValue} kg\n\n` +
+           `🔬 Carbon Stored: ${carbonValue} kg C\n` +
+           `💨 Oxygen Produced: ${oxygenValue} kg O₂/year\n` +
+           `🌫️ Pollution Absorbed: ${pollutionValue} kg/year\n\n` +
+           `🌍 *Environmental Equivalents:*\n` +
+           `👥 ${peopleEquivalent} people's annual oxygen supply\n` +
+           `🚗 ${carEquivalent} km of car emissions offset\n` +
+           `🏠 ${homeEquivalent} days of home energy offset\n\n` +
+           `📊 Calculated using EcoTree Tracker`;
+}
 
-    if (navigator.share) {
-        navigator.share({
-            title: 'EcoTree Tracker - Environmental Impact',
-            text: shareText
-        }).catch(err => console.log('Share failed:', err));
-    } else {
-        // Fallback: Copy to clipboard
-        navigator.clipboard.writeText(shareText).then(() => {
-            alert('Results copied to clipboard!');
-        });
-    }
+// Toggle share dropdown
+document.getElementById('shareBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.getElementById('shareDropdown').classList.toggle('active');
+});
+
+// Close dropdown when clicking outside
+document.addEventListener('click', () => {
+    document.getElementById('shareDropdown').classList.remove('active');
+});
+
+// WhatsApp share
+document.getElementById('shareWhatsApp').addEventListener('click', () => {
+    const text = encodeURIComponent(getFullShareText());
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+    document.getElementById('shareDropdown').classList.remove('active');
+});
+
+// Email share
+document.getElementById('shareEmail').addEventListener('click', () => {
+    const treeName = document.getElementById('treeName').textContent;
+    const subject = encodeURIComponent(`EcoTree Tracker - ${treeName} Environmental Impact Report`);
+    const body = encodeURIComponent(getFullShareText());
+    window.open(`mailto:?subject=${subject}&body=${body}`, '_blank');
+    document.getElementById('shareDropdown').classList.remove('active');
 });
 
 // Auto-fill tree data when species is selected (removed - no longer auto-filling)
