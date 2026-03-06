@@ -71,7 +71,6 @@ Based on **Indian Forestry Standards** (Forest Survey of India + International M
 - **Final AGB** = (Chave × 50%) + (FSI × 30%) + (Brown × 20%)
 - **BGB** (Below-Ground) = AGB × 0.15-0.25 (size-dependent)
 - **Carbon Stored** = Total Biomass × 0.47 (IPCC standard)
-- **CO₂ Equivalent** = Carbon × 3.67 (molecular weight ratio)
 - **O₂ Production** = Carbon × 2.67 × Activity Factor
 
 ### Species-Specific:

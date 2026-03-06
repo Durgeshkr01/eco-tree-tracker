@@ -279,8 +279,7 @@ function displayResults(treeData, results, age, latitude, longitude) {
     document.getElementById('agbValue').textContent = results.biomass.aboveGround;
     document.getElementById('bgbValue').textContent = results.biomass.belowGround;
     document.getElementById('carbonValue').textContent = results.carbon;
-    document.getElementById('co2Value').textContent = results.co2;
-    document.getElementById('co2Tonnes').textContent = (parseFloat(results.co2) / 1000).toFixed(3);
+
     document.getElementById('oxygenValue').textContent = results.oxygen;
     document.getElementById('pollutionValue').textContent = results.pollution;
 
@@ -423,10 +422,6 @@ function displayHistory() {
             </div>
             <div class="history-stats">
                 <div class="stat-badge">
-                    <strong>${calc.results.co2}</strong>
-                    <small>kg CO₂</small>
-                </div>
-                <div class="stat-badge">
                     <strong>${calc.results.oxygen}</strong>
                     <small>kg O₂</small>
                 </div>
@@ -493,8 +488,6 @@ document.getElementById('exportExcel').addEventListener('click', () => {
             'Above-Ground Biomass (kg)': calc.results.biomass.aboveGround,
             'Below-Ground Biomass (kg)': calc.results.biomass.belowGround,
             'Carbon Stored (kg C)': calc.results.carbon,
-            'CO₂ Equivalent (kg)': calc.results.co2,
-            'CO₂ Equivalent (tonnes)': (parseFloat(calc.results.co2) / 1000).toFixed(3),
             'Oxygen Produced (kg/year)': calc.results.oxygen,
             'Pollution Absorbed (kg/year)': calc.results.pollution,
             'People Oxygen Equivalent': calc.results.equivalents.people,
@@ -521,8 +514,6 @@ document.getElementById('exportExcel').addEventListener('click', () => {
         { wch: 25 }, // AGB
         { wch: 25 }, // BGB
         { wch: 20 }, // Carbon
-        { wch: 20 }, // CO2 kg
-        { wch: 22 }, // CO2 tonnes
         { wch: 25 }, // Oxygen
         { wch: 25 }, // Pollution
         { wch: 22 }, // People Oxygen
@@ -558,7 +549,7 @@ document.getElementById('downloadPDF').addEventListener('click', () => {
     const agb = document.getElementById('agbValue').textContent || '0';
     const bgb = document.getElementById('bgbValue').textContent || '0';
     const carbon = document.getElementById('carbonValue').textContent || '0';
-    const co2Val = document.getElementById('co2Value').textContent || '0';
+
     const oxygen = document.getElementById('oxygenValue').textContent || '0';
     const pollution = document.getElementById('pollutionValue').textContent || '0';
     const people = document.getElementById('peopleEquivalent').textContent || '0';
@@ -627,7 +618,6 @@ document.getElementById('downloadPDF').addEventListener('click', () => {
     const cards = [
         { title: 'Total Biomass', value: biomass, unit: 'kg', color: [243, 156, 18], extra: `AGB: ${agb} | BGB: ${bgb}` },
         { title: 'Carbon Stored', value: carbon, unit: 'kg C', color: [149, 165, 166] },
-        { title: 'CO2 Sequestration', value: co2Val, unit: 'kg CO2/year', color: [52, 152, 219] },
         { title: 'Oxygen Production', value: oxygen, unit: 'kg O2/year', color: [26, 188, 156] },
         { title: 'Air Pollution Removed', value: pollution, unit: 'kg/year', color: [231, 76, 60] }
     ];
@@ -719,12 +709,10 @@ document.getElementById('downloadPDF').addEventListener('click', () => {
 
 // Share functionality
 document.getElementById('shareBtn').addEventListener('click', () => {
-    const co2Value = document.getElementById('co2Value').textContent;
     const oxygenValue = document.getElementById('oxygenValue').textContent;
     const treeName = document.getElementById('treeName').textContent;
 
     const shareText = `🌳 ${treeName} Impact:\n` +
-                     `🌍 CO₂ Absorbed: ${co2Value} kg/year\n` +
                      `💨 Oxygen Produced: ${oxygenValue} kg/year\n` +
                      `\nCalculated using EcoTree Tracker`;
 

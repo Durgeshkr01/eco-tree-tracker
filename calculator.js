@@ -40,7 +40,6 @@ class TreeCalculator {
         return totalBiomass * 0.5;
     }
 
-    // Calculate CO2 Equivalent
     calculateCO2(carbon) {
         // Formula: CO2 = (Carbon * 44) / 12
         // Molecular weight ratio: CO2 (44) to C (12)
@@ -56,7 +55,7 @@ class TreeCalculator {
 
     // Calculate Air Pollution Absorption
     calculatePollutionAbsorption(co2) {
-        // Formula: Pollution Absorbed = 0.02 × CO2 Equivalent
+        // Formula: Pollution Absorbed = 0.02 × CO2
         // Represents PM2.5, NO₂, SO₂, O₃ absorption combined
         return co2 * 0.02;
     }

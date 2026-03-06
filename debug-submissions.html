@@ -209,7 +209,7 @@
                         <th>Admin Username</th>
                         <th>User ID</th>
                         <th>Tree Name</th>
-                        <th>CO2 (kg)</th>
+
                         <th>Access Code</th>
                         <th>Timestamp</th>
                     </tr>`;
@@ -220,7 +220,7 @@
                         <td><strong>${data.adminUsername || 'MISSING!'}</strong></td>
                         <td>${data.studentId || 'N/A'}</td>
                         <td>${data.treeName || 'N/A'}</td>
-                        <td>${data.co2 || 'N/A'}</td>
+
                         <td>${data.accessCode || 'N/A'}</td>
                         <td>${data.timestamp ? new Date(data.timestamp).toLocaleString() : 'N/A'}</td>
                     </tr>`;
@@ -273,14 +273,13 @@
                 let html = `<div class="status success">
                     ✅ Found ${results.size} submission(s) for admin: <strong>${adminUsername}</strong>
                 </div><table>
-                    <tr><th>User</th><th>Tree</th><th>CO2</th><th>Time</th></tr>`;
+                    <tr><th>User</th><th>Tree</th><th>Time</th></tr>`;
                 
                 results.forEach(doc => {
                     const data = doc.data();
                     html += `<tr>
                         <td>${data.studentId}</td>
                         <td>${data.treeName}</td>
-                        <td>${data.co2} kg</td>
                         <td>${new Date(data.timestamp).toLocaleString()}</td>
                     </tr>`;
                 });

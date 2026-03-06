@@ -269,10 +269,6 @@ function updateDashboardStats(submissions) {
     // Total trees
     document.getElementById('totalTrees').textContent = submissions.length;
     
-    // Total CO2
-    const totalCO2 = submissions.reduce((sum, s) => sum + (parseFloat(s.co2) || 0), 0);
-    document.getElementById('totalCO2').textContent = totalCO2.toFixed(2) + ' kg';
-    
     // Unique locations
     const uniqueLocations = new Set(
         submissions
@@ -289,7 +285,7 @@ function updateStudentsTable(submissions) {
     if (submissions.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" style="text-align: center; color: #999;">
+                <td colspan="5" style="text-align: center; color: #999;">
                     No data available. Users will appear here once they submit data.
                 </td>
             </tr>
@@ -303,7 +299,6 @@ function updateStudentsTable(submissions) {
             <td>${sub.treeName || 'Unknown'}</td>
             <td>${sub.latitude && sub.longitude ? `${parseFloat(sub.latitude).toFixed(4)}, ${parseFloat(sub.longitude).toFixed(4)}` : 'Not recorded'}</td>
             <td>${new Date(sub.timestamp).toLocaleString()}</td>
-            <td>${parseFloat(sub.co2).toFixed(2)}</td>
             <td><button class="btn-view" onclick="viewDetails('${sub.id}')">View</button></td>
         </tr>
     `).join('');
@@ -370,10 +365,6 @@ window.viewDetails = async (submissionId) => {
             <div class="detail-row">
                 <strong>Carbon Stored:</strong>
                 <span>${data.carbon || 'N/A'} kg C</span>
-            </div>
-            <div class="detail-row">
-                <strong>CO2 Sequestration:</strong>
-                <span>${data.co2 || 'N/A'} kg CO2/year</span>
             </div>
             <div class="detail-row">
                 <strong>Oxygen Production:</strong>
@@ -551,7 +542,6 @@ function updateHeatMap(submissions) {
           .bindPopup(`
               <strong>${s.treeName}</strong><br>
               User: ${s.studentId}<br>
-              <strong>CO2: ${co2Value} kg</strong><br>
               Location: ${lat.toFixed(4)}, ${lng.toFixed(4)}
           `);
     });

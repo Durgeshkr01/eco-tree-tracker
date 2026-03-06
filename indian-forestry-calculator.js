@@ -155,7 +155,6 @@ class IndianForestryCalculator {
         return totalBiomass * CARBON_FRACTION;
     }
 
-    // Calculate CO2 Equivalent
     calculateCO2(carbonKg) {
         // Molecular weight conversion: CO2/C = 44/12 = 3.67
         return carbonKg * 3.67;
@@ -220,7 +219,6 @@ class IndianForestryCalculator {
         // Step 6: Carbon Storage
         const carbon = this.calculateCarbon(totalBiomass);
         
-        // Step 7: CO2 Equivalent
         const co2 = this.calculateCO2(carbon);
         
         // Step 8: Oxygen Production
@@ -266,9 +264,8 @@ class IndianForestryCalculator {
                 "3. Above-Ground Biomass using combined Chave (2005), FSI Volume, and Brown (1989) equations",
                 "4. Below-Ground Biomass using FSI root-to-shoot ratios (15-25% based on tree size)",
                 "5. Carbon Storage = 47% of Total Biomass (IPCC standard)",
-                "6. CO₂ Equivalent = Carbon × 3.67 (molecular weight ratio)",
-                "7. O₂ Production = Carbon × 2.67 × Activity Factor",
-                "8. Air Pollution Absorption (PM2.5, NOx, SO2) based on leaf area"
+                "6. O₂ Production = Carbon × 2.67 × Activity Factor",
+                "7. Air Pollution Absorption (PM2.5, NOx, SO2) based on leaf area"
             ],
             references: [
                 "Forest Survey of India (FSI) - State of Forest Report 2023",
