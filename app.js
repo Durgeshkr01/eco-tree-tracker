@@ -1,6 +1,12 @@
 // Main Application Logic
 let calculationHistory = [];
 let selectedTreeIndex = null;
+let treeSearchIndex = [];
+let treeSearchDebounceTimer = null;
+let lastIndexedSpeciesCount = 0;
+
+const MAX_SEARCH_RESULTS = 80;
+const SEARCH_DEBOUNCE_MS = 100;
 
 // Logout function
 window.logout = () => {
@@ -144,21 +150,30 @@ function animatePageLoad() {
 function initializeTreeSearch() {
     const searchInput = document.getElementById('treeSearch');
     const dropdown = document.getElementById('treeDropdown');
+    ensureTreeSearchIndex();
     
     // Search on input
     searchInput.addEventListener('input', (e) => {
         const query = e.target.value;
-        if (query.trim()) {
-            showTreeOptions(query);
-        } else {
-            dropdown.classList.remove('active');
+
+        if (treeSearchDebounceTimer) {
+            clearTimeout(treeSearchDebounceTimer);
         }
+
+        if (!query.trim()) {
+            dropdown.classList.remove('active');
+            return;
+        }
+
+        treeSearchDebounceTimer = setTimeout(() => {
+            showTreeOptions(query);
+        }, SEARCH_DEBOUNCE_MS);
     });
     
     // Show dropdown on focus with text
     searchInput.addEventListener('focus', (e) => {
         if (e.target.value.trim()) {
-            dropdown.classList.add('active');
+            showTreeOptions(e.target.value);
         }
     });
     
@@ -170,15 +185,84 @@ function initializeTreeSearch() {
     });
 }
 
+function normalizeSearchText(value) {
+    return (value || '')
+        .toLowerCase()
+        .normalize('NFKD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function ensureTreeSearchIndex() {
+    if (!Array.isArray(treeSpeciesData) || treeSpeciesData.length === 0) {
+        treeSearchIndex = [];
+        lastIndexedSpeciesCount = 0;
+        return;
+    }
+
+    if (treeSpeciesData.length === lastIndexedSpeciesCount && treeSearchIndex.length > 0) {
+        return;
+    }
+
+    treeSearchIndex = treeSpeciesData.map((tree, index) => {
+        const name = tree.name || '';
+        const scientific = tree.scientific || '';
+
+        return {
+            index,
+            name,
+            scientific,
+            nameSearch: normalizeSearchText(name),
+            scientificSearch: normalizeSearchText(scientific)
+        };
+    });
+
+    lastIndexedSpeciesCount = treeSpeciesData.length;
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 // Show tree options based on search query
 function showTreeOptions(query) {
     const dropdown = document.getElementById('treeDropdown');
-    const lowerQuery = query.toLowerCase();
-    
-    const filteredTrees = treeSpeciesData.filter(tree => 
-        tree.name.toLowerCase().includes(lowerQuery) ||
-        tree.scientific.toLowerCase().includes(lowerQuery)
-    );
+    ensureTreeSearchIndex();
+
+    const searchQuery = normalizeSearchText(query);
+    if (!searchQuery) {
+        dropdown.classList.remove('active');
+        return;
+    }
+
+    const startsWithMatches = [];
+    const containsMatches = [];
+
+    for (let i = 0; i < treeSearchIndex.length; i++) {
+        const tree = treeSearchIndex[i];
+        const nameStarts = tree.nameSearch.startsWith(searchQuery);
+        const scientificStarts = tree.scientificSearch.startsWith(searchQuery);
+        const nameContains = tree.nameSearch.includes(searchQuery);
+        const scientificContains = tree.scientificSearch.includes(searchQuery);
+
+        if (nameStarts || scientificStarts) {
+            startsWithMatches.push(tree);
+        } else if (nameContains || scientificContains) {
+            containsMatches.push(tree);
+        }
+
+        if ((startsWithMatches.length + containsMatches.length) >= MAX_SEARCH_RESULTS) {
+            break;
+        }
+    }
+
+    const filteredTrees = startsWithMatches.concat(containsMatches);
     
     if (filteredTrees.length === 0) {
         dropdown.innerHTML = '<div class="no-results">No trees found</div>';
@@ -186,13 +270,13 @@ function showTreeOptions(query) {
         return;
     }
     
-    dropdown.innerHTML = filteredTrees.map((tree, index) => {
-        const originalIndex = treeSpeciesData.indexOf(tree);
+    dropdown.innerHTML = filteredTrees.map((tree) => {
+        const originalIndex = tree.index;
         const isSelected = selectedTreeIndex === originalIndex;
         return `
             <div class="tree-option ${isSelected ? 'selected' : ''}" onclick="selectTree(${originalIndex})">
-                <div><strong>${tree.name}</strong></div>
-                <div class="tree-scientific">${tree.scientific}</div>
+                <div><strong>${escapeHtml(tree.name)}</strong></div>
+                <div class="tree-scientific">${escapeHtml(tree.scientific)}</div>
             </div>
         `;
     }).join('');

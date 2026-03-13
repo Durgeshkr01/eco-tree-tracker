@@ -142,6 +142,13 @@ const treeSpeciesData = [
 // Load tree species into dropdown
 function loadTreeSpecies() {
     const select = document.getElementById('treeSpecies');
+  if (!select) return;
+
+  const placeholder = select.querySelector('option[value=""]');
+  select.innerHTML = '';
+  if (placeholder) {
+    select.appendChild(placeholder);
+  }
     
     // Sort alphabetically
     const sortedTrees = treeSpeciesData.sort((a, b) => a.name.localeCompare(b.name));
@@ -154,10 +161,73 @@ function loadTreeSpecies() {
     });
 }
 
+function normalizeSpeciesText(value) {
+  return (value || '')
+    .replace(/\u00A0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function getSpeciesMatchKey(value) {
+  const normalized = normalizeSpeciesText(value);
+  const binomialMatch = normalized.match(/^([a-z.-]+)\s+([a-z.-]+)/);
+  return binomialMatch ? `${binomialMatch[1]} ${binomialMatch[2]}` : normalized;
+}
+
+function mergeAppendixSpecies(speciesNames) {
+  const existingKeys = new Set();
+
+  treeSpeciesData.forEach(tree => {
+    [tree.name, tree.common, tree.scientific].forEach(text => {
+      const key = getSpeciesMatchKey(text);
+      if (key) existingKeys.add(key);
+    });
+  });
+
+  speciesNames.forEach(rawName => {
+    const name = (rawName || '').trim();
+    if (!name) return;
+
+    const key = getSpeciesMatchKey(name);
+    if (!key || existingKeys.has(key)) return;
+
+    treeSpeciesData.push({
+      name: name,
+      scientific: name,
+      common: name
+    });
+
+    existingKeys.add(key);
+  });
+}
+
+async function loadAppendixSpecies() {
+  try {
+    const response = await fetch('appendix-b-species.txt', { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(`Failed to load Appendix-B species: ${response.status}`);
+    }
+
+    const text = await response.text();
+    const speciesNames = text
+      .split(/\r?\n/)
+      .map(line => line.trim())
+      .filter(Boolean);
+
+    mergeAppendixSpecies(speciesNames);
+  } catch (error) {
+    console.warn('Appendix-B species file not loaded. Using built-in list only.', error);
+  }
+}
+
 // Get tree data by index
 function getTreeData(index) {
     return treeSpeciesData[index];
 }
 
 // Load species on page load
-document.addEventListener('DOMContentLoaded', loadTreeSpecies);
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadAppendixSpecies();
+  loadTreeSpecies();
+});
