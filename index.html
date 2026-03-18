@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0a1628">
+    <meta name="description" content="Calculate tree's carbon absorption, oxygen production & environmental impact">
+    <title>EcoTree Tracker - Carbon & Oxygen Calculator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- TensorFlow.js for ML-based measurements -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js"></script>
+    <!-- COCO-SSD: Real AI Object Detection (identifies laptop, person, phone, etc.) -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+    <!-- DeepLab v3: Semantic Segmentation — pixel-level tree detection, ignores person/bike/background -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/deeplab@0.2.1/dist/deeplab.min.js"></script>
+    
+    <!-- HTML2PDF Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <!-- SheetJS for Excel Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- Login Check -->
+    <script>
+        // Check if user is logged in
+        const studentSession = localStorage.getItem('studentSession');
+        const adminSession = localStorage.getItem('adminSession');
+        
+        if (!studentSession && !adminSession) {
+            // Not logged in - redirect to login page
+            window.location.href = 'login.html';
+        }
+    </script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="header-text">
+                    <h1><i class="fas fa-tree" style="margin-right: 8px;"></i>EcoTree Tracker</h1>
+                    <p>Carbon absorption, oxygen production & environmental impact calculator</p>
+                </div>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 10px;">
+                    <button onclick="logout()" class="header-action-btn logout-btn-header">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                    <button id="installBtn" class="header-action-btn install-btn-header" style="display: none;">
+                        <i class="fas fa-download"></i> Install
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="container">
+        <!-- Input Form Section -->
+        <section class="card input-section">
+            <h2><i class="fas fa-tree"></i> Tree Details</h2>
+            <form id="treeForm">
+                <!-- Tree Species -->
+                <div class="form-group full-width">
+                    <label for="treeSpecies">
+                        <i class="fas fa-leaf"></i> Tree Species
+                    </label>
+                    <input type="text" id="treeSearch" placeholder="Search tree species..." autocomplete="off">
+                    <select id="treeSpecies" required size="5" style="display:none;">
+                        <option value="">Select Tree Species</option>
+                    </select>
+                    <div id="treeDropdown" class="tree-dropdown"></div>
+                </div>
+
+                <!-- Circumference Input -->
+                <div class="form-group full-width">
+                    <label for="circumference">
+                        <i class="fas fa-circle-notch"></i> Tree Circumference (at Breast Height)
+                    </label>
+                    <div style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
+                        <button type="button" id="openCameraBtn" class="btn-secondary" style="flex: 1; padding: 10px 14px; font-size: 0.85rem; min-width: 140px;">
+                            <i class="fas fa-camera"></i> AI Camera
+                        </button>
+                        <button type="button" onclick="showCameraGuideAgain()" class="btn-secondary" style="padding: 10px 14px; font-size: 0.85rem; background: rgba(59,130,246,0.1); color: #60a5fa; border-color: rgba(59,130,246,0.2);">
+                            <i class="fas fa-question-circle"></i> Guide
+                        </button>
+                    </div>
+                    <div class="input-with-unit" id="manualInputContainer">
+                        <input type="number" id="circumference" step="0.1" min="0.1" placeholder="Enter circumference in cm" required>
+                        <span class="unit-label">cm</span>
+                    </div>
+                    <small style="color: rgba(255,255,255,.4); display: block; margin-top: 5px; font-size: 0.8rem;">
+                        <i class="fas fa-info-circle"></i> Use camera for automatic measurement or enter manually
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label for="biomassMethod">
+                        <i class="fas fa-calculator"></i> Biomass Method
+                    </label>
+                    <select id="biomassMethod" required>
+                        <option value="method1" selected>Method 1 (No height required)</option>
+                        <option value="method2">Method 2 (Height required)</option>
+                    </select>
+                    <small style="color: rgba(255,255,255,.4); display: block; margin-top: 5px; font-size: 0.8rem;">
+                        Method 1: AGB = 0.0673 x (rho D^2)^1.02, Method 2: AGB = 0.0673 x (rho D^2 H)^0.976
+                    </small>
+                </div>
+
+                <div class="form-group" id="treeHeightGroup" style="display:none;">
+                    <label for="treeHeight">
+                        <i class="fas fa-ruler-vertical"></i> Tree Height (m)
+                    </label>
+                    <div class="input-with-unit">
+                        <input type="number" id="treeHeight" step="0.1" min="0.1" placeholder="Enter tree height in meters">
+                        <span class="unit-label">m</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="forestType">
+                        <i class="fas fa-tree"></i> Forest Type (for Carbon Fraction)
+                    </label>
+                    <select id="forestType" required>
+                        <option value="broadleaf" selected>Broadleaf (CF = 0.47)</option>
+                        <option value="coniferous">Coniferous (CF = 0.50)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="woodDensity">
+                        <i class="fas fa-weight-hanging"></i> Wood Density (g/cm^3)
+                    </label>
+                    <div class="input-with-unit">
+                        <input type="number" id="woodDensity" step="0.001" min="0.1" max="1.6" placeholder="Auto-filled from species data">
+                        <span class="unit-label">g/cm^3</span>
+                    </div>
+                    <small id="woodDensitySource" style="color: rgba(255,255,255,.4); display: block; margin-top: 5px; font-size: 0.8rem;">
+                        Select a tree species to auto-fill wood density.
+                    </small>
+                </div>
+
+                <!-- Age (Optional) -->
+                <div class="form-group">
+                    <label for="age">
+                        <i class="fas fa-calendar-alt"></i> Tree Age (Optional)
+                    </label>
+                    <input type="number" id="age" min="1" placeholder="Enter age in years">
+                </div>
+
+                <!-- GPS Location -->
+                <div class="form-group full-width">
+                    <label>
+                        <i class="fas fa-map-marker-alt"></i> GPS Location
+                    </label>
+                    <div style="display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap;">
+                        <button type="button" id="getLocationBtn" class="btn-secondary" style="flex: 1; padding: 10px 14px; font-size: 0.85rem; min-width: 140px;">
+                            <i class="fas fa-crosshairs"></i> Get Location
+                        </button>
+                        <button type="button" id="lockLocationBtn" class="btn-secondary" style="flex: 1; padding: 10px 14px; font-size: 0.85rem; background: rgba(16,185,129,0.2); color: #34d399; border-color: rgba(16,185,129,0.3); display: none;">
+                            <i class="fas fa-lock"></i> Lock Location
+                        </button>
+                        <button type="button" id="unlockLocationBtn" class="btn-secondary" style="padding: 10px 14px; font-size: 0.85rem; background: rgba(239,68,68,0.15); color: #fca5a5; border-color: rgba(239,68,68,0.2); display: none;">
+                            <i class="fas fa-unlock"></i> Unlock
+                        </button>
+                    </div>
+                    <div class="gps-fields">
+                        <div style="display: flex; gap: 10px;">
+                            <div style="flex: 1;">
+                                <label for="latitude" style="font-size: 0.9em; color: rgba(255,255,255,0.5);">Latitude</label>
+                                <input type="text" id="latitude" placeholder="Auto-filled" readonly style="background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.08);">
+                            </div>
+                            <div style="flex: 1;">
+                                <label for="longitude" style="font-size: 0.9em; color: rgba(255,255,255,0.5);">Longitude</label>
+                                <input type="text" id="longitude" placeholder="Auto-filled" readonly style="background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.9); border: 1px solid rgba(255,255,255,0.08);">
+                            </div>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.82em; color: rgba(255,255,255,.35); margin-top: 8px;">
+                        <i class="fas fa-lightbulb" style="color: #fbbf24;"></i> Click "Get Location" then lock it to use same coordinates for multiple trees
+                    </p>
+                </div>
+
+                <!-- Calculate Button -->
+                <button type="submit" class="btn-primary form-submit-btn">
+                    <i class="fas fa-calculator"></i> Calculate
+                </button>
+            </form>
+        </section>
+
+        <!-- Results Section -->
+        <section id="resultsSection" class="results-section" style="display: none;">
+            <div class="results-header">
+                <h2><i class="fas fa-chart-line"></i> Calculation Results</h2>
+                <div class="action-buttons">
+                    <button id="downloadPDF" class="btn-secondary">
+                        <i class="fas fa-download"></i> Download PDF
+                    </button>
+                    <div class="share-dropdown-wrapper">
+                        <button id="shareBtn" class="btn-secondary">
+                            <i class="fas fa-share-alt"></i> Share
+                        </button>
+                        <div class="share-dropdown" id="shareDropdown">
+                            <button id="shareWhatsApp" class="share-option whatsapp">
+                                <i class="fab fa-whatsapp"></i> WhatsApp
+                            </button>
+                            <button id="shareEmail" class="share-option email">
+                                <i class="fas fa-envelope"></i> Email
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tree Info Summary -->
+            <div class="tree-summary card">
+                <h3 id="treeName">Tree Information</h3>
+                <div class="tree-details" id="treeDetails"></div>
+            </div>
+
+            <!-- Results Cards Grid -->
+            <div class="results-grid">
+                <!-- Biomass Card -->
+                <div class="result-card card">
+                    <div class="card-icon biomass-icon">
+                        <i class="fas fa-weight"></i>
+                    </div>
+                    <h3>Total Biomass</h3>
+                    <div class="result-value" id="biomassValue">0</div>
+                    <div class="result-unit">kg</div>
+                    <div class="result-breakdown">
+                        <small>Above-ground: <span id="agbValue">0</span> kg</small>
+                        <small>Below-ground: <span id="bgbValue">0</span> kg</small>
+                    </div>
+                </div>
+
+                <!-- Carbon Stored Card -->
+                <div class="result-card card">
+                    <div class="card-icon carbon-icon">
+                        <i class="fas fa-atom"></i>
+                    </div>
+                    <h3>Carbon Stored</h3>
+                    <div class="result-value" id="carbonValue">0</div>
+                    <div class="result-unit">kg C</div>
+                    <div class="result-info">
+                        <small>Locked in tree biomass</small>
+                    </div>
+                </div>
+
+
+
+                <!-- Oxygen Production Card -->
+                <div class="result-card card highlight">
+                    <div class="card-icon oxygen-icon">
+                        <i class="fas fa-wind"></i>
+                    </div>
+                    <h3>Oxygen Produced</h3>
+                    <div class="result-value" id="oxygenValue">0</div>
+                    <div class="result-unit">kg O₂/year</div>
+                    <div class="result-info">
+                        <small>Fresh air generated</small>
+                    </div>
+                </div>
+
+                <!-- Air Pollution Card -->
+                <div class="result-card card">
+                    <div class="card-icon pollution-icon">
+                        <i class="fas fa-smog"></i>
+                    </div>
+                    <h3>Pollution Absorbed</h3>
+                    <div class="result-value" id="pollutionValue">0</div>
+                    <div class="result-unit">kg/year</div>
+                    <div class="result-info">
+                        <small>PM2.5, NO₂, SO₂ removed</small>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Environmental Impact Summary -->
+            <div class="card impact-summary">
+                <h3><i class="fas fa-globe-americas"></i> Environmental Impact</h3>
+                <div class="impact-grid">
+                    <div class="impact-item">
+                        <i class="fas fa-users"></i>
+                        <div>
+                            <strong id="peopleEquivalent">0</strong>
+                            <small>People's oxygen supply (annual)</small>
+                        </div>
+                    </div>
+                    <div class="impact-item">
+                        <i class="fas fa-car"></i>
+                        <div>
+                            <strong id="carEquivalent">0</strong>
+                            <small>km of car emissions offset</small>
+                        </div>
+                    </div>
+                    <div class="impact-item">
+                        <i class="fas fa-home"></i>
+                        <div>
+                            <strong id="homeEquivalent">0</strong>
+                            <small>Days of home energy offset</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Know Your Tree - Agricultural Info Card -->
+            <div class="tree-info-card" id="treeInfoCard" style="display: none;">
+                <h3><i class="fas fa-book-open"></i> Know Your Tree - Agricultural Guide</h3>
+                <div id="treeInfoContent">
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-leaf"></i> Uses:</span>
+                        <span id="treeUses"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label"><i class="fas fa-seedling"></i> Benefits:</span>
+                        <span id="treeBenefits"></span>
+                    </div>
+                    <div class="info-item fact-highlight">
+                        <span class="info-label"><i class="fas fa-lightbulb"></i> Did You Know?</span>
+                        <span id="treeFact"></span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Calculation History Section -->
+        <section class="card history-section">
+            <div class="history-header">
+                <h2><i class="fas fa-history"></i> Calculation History</h2>
+                <div class="history-actions">
+                    <button id="exportExcel" class="btn-export">
+                        <i class="fas fa-file-excel"></i> Export to Excel
+                    </button>
+                    <button id="clearHistory" class="btn-clear">
+                        <i class="fas fa-trash"></i> Clear All
+                    </button>
+                </div>
+            </div>
+            <div id="historyList" class="history-list">
+                <p class="no-history">No calculations yet. Start by calculating a tree's impact!</p>
+            </div>
+        </section>
+
+        <!-- Educational Content Section -->
+        <section class="card educational-section">
+            <h2><i class="fas fa-graduation-cap"></i> Understanding Carbon Sequestration</h2>
+            
+            <div class="education-grid">
+                <div class="edu-card">
+                    <div class="edu-icon"><i class="fas fa-tree" style="color: #34d399;"></i></div>
+                    <h3>How Trees Absorb CO₂</h3>
+                    <p>Through photosynthesis, trees absorb carbon dioxide from the atmosphere and store carbon in their biomass (trunk, branches, leaves, and roots). The oxygen is released back into the air as a byproduct.</p>
+                </div>
+                
+                <div class="edu-card">
+                    <div class="edu-icon"><i class="fas fa-wind" style="color: #60a5fa;"></i></div>
+                    <h3>Oxygen Production</h3>
+                    <p>A mature tree produces approximately 260 pounds of oxygen per year. That's enough oxygen for two people annually! Trees are literally the lungs of our planet.</p>
+                </div>
+                
+                <div class="edu-card">
+                    <div class="edu-icon"><i class="fas fa-globe-americas" style="color: #a78bfa;"></i></div>
+                    <h3>Climate Change Impact</h3>
+                    <p>Trees are our best natural defense against climate change. They remove harmful CO₂ from the atmosphere, reduce urban heat islands, and help regulate local and global temperatures.</p>
+                </div>
+                
+                <div class="edu-card">
+                    <div class="edu-icon"><i class="fas fa-industry" style="color: #f87171;"></i></div>
+                    <h3>Air Pollution Removal</h3>
+                    <p>Trees filter harmful pollutants like PM2.5, nitrogen dioxide, sulfur dioxide, and ozone from the air. Their leaves and bark act as natural air purifiers for our cities.</p>
+                </div>
+                
+                <div class="edu-card">
+                    <div class="edu-icon"><i class="fas fa-chart-bar" style="color: #34d399;"></i></div>
+                    <h3>Why Measure Trees?</h3>
+                    <p>Measuring tree impact helps us understand their contribution to ecosystem services, plan urban forestry programs, and make data-driven decisions for environmental conservation.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- About the Science Section -->
+        <section class="card science-section">
+            <h2><i class="fas fa-flask"></i> About the Science - Chave (2014) Method</h2>
+            
+            <div class="science-content">
+                <div class="methodology">
+                    <h3>Our Methodology (DBH + Wood Density + Optional Height)</h3>
+                    <p>Our AGB workflow follows the <strong>Chave et al. (2014)</strong> pantropical model family. The app lets users choose between a no-height method and a height-based method using DBH and wood density.</p>
+                    
+                    <div class="formula-box">
+                        <h4>Key Methods:</h4>
+                        <ul>
+                            <li><strong>DBH Calculation:</strong> DBH = Circumference / pi (measured at 1.37 m height)</li>
+                            <li><strong>Method 1 (No Height):</strong> AGB = 0.0673 x (rho x D^2)^1.02</li>
+                            <li><strong>Method 2 (Height Required):</strong> AGB = 0.0673 x (rho x D^2 x H)^0.976</li>
+                            <li><strong>Below-Ground Biomass:</strong> BGB = AGB × 0.15-0.25 (size-dependent)</li>
+                            <li><strong>Carbon (from AGB):</strong> Carbon = AGB x Carbon Fraction</li>
+                            <li><strong>Carbon Fraction:</strong> Broadleaf = 0.47, Coniferous = 0.50</li>
+                            <li><strong>Oxygen Production:</strong> O₂ = Carbon × 2.67 × Activity Factor</li>
+                        </ul>
+                        <p style="margin-top: 12px; color: #10b981; font-weight: 600;">
+                            <i class="fas fa-leaf"></i> Uses species-wise <strong>wood density (rho)</strong> with archive lookup + built-in fallback values
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="accuracy-note">
+                    <h4><i class="fas fa-info-circle"></i> Accuracy & Validation</h4>
+                    <p>Method 2 generally gives better AGB estimates when reliable height is available. Method 1 is useful when height is not available, but uncertainty can increase depending on stand structure and species variability.</p>
+                    <p style="margin-top: 8px;"><strong>Measurement Standard:</strong> DBH = Diameter at Breast Height (1.37 m from ground), following international forestry conventions.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section class="card faq-section">
+            <h2><i class="fas fa-question-circle"></i> Frequently Asked Questions</h2>
+            
+            <div class="faq-list">
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>How do I measure tree circumference accurately?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Use a measuring tape to measure around the tree trunk at breast height (approximately 1.3 meters or 4.5 feet from the ground). Ensure the tape is level and snug against the bark without compressing it. Record the measurement in centimeters.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>How accurate are these calculations?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>These are allometric estimates based on Chave (2014) equations. Method 2 (with height) is usually more reliable than Method 1 (without height). Final accuracy depends on DBH quality, height quality, and species wood density match.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>Why do you need GPS location?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>GPS location helps track trees geographically, create environmental impact maps, and analyze regional carbon sequestration patterns. It's optional but recommended for comprehensive tree tracking.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>How is wood density selected?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>When you select a tree, wood density is auto-filled from the linked species dataset. If no exact archive match is found, the calculator uses built-in species/default fallback, and you can manually edit the density before calculation.</p>
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>How is carbon calculated for broadleaf vs coniferous?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Carbon is calculated from AGB only: Carbon = AGB x Carbon Fraction. Select Broadleaf to apply 0.47 and Coniferous to apply 0.50. This selection directly changes carbon, CO2 equivalent, and oxygen outputs.</p>
+                    </div>
+                </div>
+                
+                <div class="faq-item">
+                    <button class="faq-question">
+                        <span>How can I export my tree data?</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Click the "Export to Excel" button in the Calculation History section. This will download a comprehensive Excel file with all your tree measurements, calculations, and GPS locations in an organized format.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact/Feedback Section -->
+        <section class="card contact-section">
+            <h2><i class="fas fa-envelope"></i> Contact & Feedback</h2>
+            
+            <div class="contact-grid">
+                <div class="contact-info">
+                    <h3>Get in Touch</h3>
+                    <p>Have questions, suggestions, or want to collaborate? We'd love to hear from you!</p>
+                    
+                    <div class="contact-details">
+                        <div class="contact-item">
+                            <i class="fas fa-university"></i>
+                            <div>
+                                <strong>Institution</strong>
+                                <p>Centurion University of Technology and Management<br>Paralakhemundi, Odisha</p>
+                            </div>
+                        </div>
+                        
+                        <div class="contact-item">
+                            <i class="fas fa-envelope"></i>
+                            <div>
+                                <strong>Email</strong>
+                                <p>durgeshraj0852@gmail.com</p>
+                            </div>
+                        </div>
+                        
+                        <div class="contact-item">
+                            <i class="fas fa-globe"></i>
+                            <div>
+                                <strong>Project</strong>
+                                <p>Carbon Sequestration Potential of Tree Species</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="feedback-form">
+                    <h3>Send Feedback</h3>
+                    <form id="feedbackForm">
+                        <div class="form-group">
+                            <input type="text" id="feedbackName" name="name" placeholder="Your Name" required>
+                        </div>
+                        <div class="form-group">
+                            <input type="email" id="feedbackEmail" name="email" placeholder="Your Email" required>
+                        </div>
+                        <div class="form-group">
+                            <textarea id="feedbackMessage" name="message" rows="4" placeholder="Your Message or Feedback" required></textarea>
+                        </div>
+                        <button type="submit" class="btn-primary">
+                            <i class="fas fa-paper-plane"></i> Send Feedback
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p style="color: rgba(255,255,255,.4); font-size: 0.82rem;">Based on Chave (2014): Method 1 AGB = 0.0673 x (rho x D<sup>2</sup>)<sup>1.02</sup>, Method 2 AGB = 0.0673 x (rho x D<sup>2</sup> x H)<sup>0.976</sup></p>
+            <p style="color: rgba(255,255,255,.55); font-size: 0.88rem; margin-top: 6px;">Made with <span style="color: #10b981;">&#9829;</span> for a greener planet &mdash; <strong>EcoTree Tracker v3.0</strong></p>
+
+            <!-- Project Guide Section -->
+            <div class="guide-section">
+                <h3><i class="fas fa-graduation-cap"></i> Project Guide</h3>
+                <div class="guide-card">
+                    <div class="guide-photo">
+                        <img src="faculty/WhatsApp Image 2026-02-17 at 12.14.39 PM.jpeg" alt="Dr. Abha Manohar">
+                    </div>
+                    <div class="guide-info">
+                        <h4>Dr. Abha Manohar</h4>
+                        <p class="role">Project Guide & Mentor</p>
+                        <p class="designation">Assistant Professor</p>
+                        <p class="department">School of Agriculture, Centurion University</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="team-section">
+                <h3><i class="fas fa-users"></i> Our Team</h3>
+                <div class="team-grid">
+                    <!-- Team Member 1: Durgesh Kumar -->
+                    <div class="team-card">
+                        <div class="team-photo">
+                            <img src="team/durgesh.jpg" alt="Durgesh Kumar">
+                        </div>
+                        <h4>Durgesh Kumar</h4>
+                        <p class="role">Lead Developer</p>
+                        <div class="social-links">
+                            <a href="https://www.instagram.com/dp.visualdiary?igsh=bHhwamptNHpqOW9i" target="_blank" class="social-icon instagram" title="Instagram">
+                                <i class="fab fa-instagram"></i>
+                            </a>
+                            <a href="https://www.linkedin.com/in/durgesh-kumar-4709a12a5" target="_blank" class="social-icon linkedin" title="LinkedIn">
+                                <i class="fab fa-linkedin"></i>
+                            </a>
+                            <a href="https://wa.me/919939128165" target="_blank" class="social-icon whatsapp" title="WhatsApp">
+                                <i class="fab fa-whatsapp"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Team Member 2: Yash Raj Anand -->
+                    <div class="team-card">
+                        <div class="team-photo">
+                            <img src="team/yash.jpg" alt="Yash Raj Anand">
+                        </div>
+                        <h4>Yash Raj Anand</h4>
+                        <p class="role">UI/UX Designer</p>
+                        <div class="social-links">
+                            <a href="https://www.instagram.com/rajput_____yash?utm_source=qr&igsh=MTg4bmJyNTdndHZ1NA==" target="_blank" class="social-icon instagram" title="Instagram">
+                                <i class="fab fa-instagram"></i>
+                            </a>
+                            <a href="https://www.linkedin.com/in/yashrajanand" target="_blank" class="social-icon linkedin" title="LinkedIn">
+                                <i class="fab fa-linkedin"></i>
+                            </a>
+                            <a href="https://wa.me/918340184545" target="_blank" class="social-icon whatsapp" title="WhatsApp">
+                                <i class="fab fa-whatsapp"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Team Member 3: Vikash Kumar -->
+                    <div class="team-card">
+                        <div class="team-photo">
+                            <img src="team/vikash.jpeg" alt="Vikash Kumar">
+                        </div>
+                        <h4>Vikash Kumar</h4>
+                        <p class="role">Backend Developer</p>
+                        <div class="social-links">
+                            <a href="https://www.instagram.com/vikash___kumar_00?utm_source=qr&igsh=eHM5bGRzd29sM3lx" target="_blank" class="social-icon instagram" title="Instagram">
+                                <i class="fab fa-instagram"></i>
+                            </a>
+                            <a href="https://www.linkedin.com/in/vikash-kumar89" target="_blank" class="social-icon linkedin" title="LinkedIn">
+                                <i class="fab fa-linkedin"></i>
+                            </a>
+                            <a href="https://wa.me/918789060869" target="_blank" class="social-icon whatsapp" title="WhatsApp">
+                                <i class="fab fa-whatsapp"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <p class="university-name">Centurion University of Technology and Management, Paralakhemundi</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script type="module" src="firebase-config.js?v=3"></script>
+    <script src="tree-data.js"></script>
+    <script src="indian-forestry-calculator.js"></script>
+    <script src="calculator.js"></script>
+    <script src="app.js?v=5"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                const swPath = window.location.hostname === 'localhost' ? './service-worker.js' : '/eco-tree-tracker/service-worker.js';
+                navigator.serviceWorker.register(swPath)
+                    .then(reg => console.log('✅ Service Worker registered!'))
+                    .catch(err => console.log('❌ Service Worker registration failed:', err));
+            });
+        }
+
+        // PWA Install Button Logic
+        let deferredPrompt;
+        const installBtn = document.getElementById('installBtn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installBtn.style.display = 'flex';
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (!deferredPrompt) return;
+            
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.choiceResult;
+            
+            if (outcome === 'accepted') {
+                console.log('🎉 App installed!');
+            }
+            
+            deferredPrompt = null;
+            installBtn.style.display = 'none';
+        });
+
+        window.addEventListener('appinstalled', () => {
+            console.log('✅ EcoTree Tracker installed successfully!');
+            installBtn.style.display = 'none';
+        });
+        
+        // Listen for service worker updates
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.addEventListener('message', event => {
+                if (event.data && event.data.type === 'UPDATE_AVAILABLE') {
+                    showUpdateNotification(event.data.version);
+                }
+            });
+            
+            // Check for updates on page load
+            navigator.serviceWorker.ready.then(registration => {
+                registration.update();
+            });
+        }
+        
+        // Show update notification
+        function showUpdateNotification(version) {
+            // Remove existing notification if any
+            const existing = document.getElementById('updateNotification');
+            if (existing) existing.remove();
+            
+            const notification = document.createElement('div');
+            notification.id = 'updateNotification';
+            notification.innerHTML = `
+                <div class="update-popup">
+                    <div class="update-icon"><i class="fas fa-rocket"></i></div>
+                    <div class="update-content">
+                        <h3>New Update Available!</h3>
+                        <p>Version ${version} with new features & improvements</p>
+                        <p class="update-note">Premium UI + Tree Information for Agriculture Users</p>
+                    </div>
+                    <div class="update-buttons">
+                        <button onclick="location.reload()" class="update-btn-primary">
+                            <i class="fas fa-download"></i> Update Now
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(notification);
+        }
+        
+        // Auto check for updates every time page loads
+        window.addEventListener('load', () => {
+            const lastVersion = localStorage.getItem('ecotree_version');
+            const currentVersion = '3.3.0';
+            
+            if (lastVersion !== currentVersion) {
+                // Show update popup for new users or when version changes
+                setTimeout(() => {
+                    showUpdateNotification(currentVersion);
+                    localStorage.setItem('ecotree_version', currentVersion);
+                }, 1500);
+            }
+        });
+    </script>
+    <style>
+        /* Update Popup */
+        .update-popup {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(17, 29, 51, 0.98);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            padding: 40px;
+            border-radius: 24px;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.5);
+            z-index: 10001;
+            text-align: center;
+            min-width: 320px;
+            max-width: 90%;
+            animation: popIn 0.4s ease-out;
+            backdrop-filter: blur(16px);
+        }
+        
+        @keyframes popIn {
+            from { transform: translate(-50%, -50%) scale(0.9); opacity: 0; }
+            to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        
+        .update-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        .update-content h3 {
+            font-size: 1.4rem;
+            margin-bottom: 8px;
+            font-weight: 800;
+            color: rgba(255,255,255,.95);
+        }
+        
+        .update-content p {
+            font-size: 0.88rem;
+            color: rgba(255,255,255,.5);
+            margin-bottom: 4px;
+        }
+        
+        .update-note {
+            background: rgba(16,185,129,0.1);
+            border: 1px solid rgba(16,185,129,0.15);
+            padding: 10px 15px;
+            border-radius: 10px;
+            margin-top: 12px !important;
+            font-size: 0.82rem !important;
+            color: #34d399 !important;
+        }
+        
+        .update-buttons {
+            margin-top: 20px;
+        }
+        
+        .update-btn-primary {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            padding: 14px 36px;
+            border-radius: 14px;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: inherit;
+        }
+        
+        .update-btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(16,185,129,0.3);
+        }
+        
+        #updateNotification::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(5px);
+            z-index: 10000;
+        }
+
+        /* Header action buttons */
+        .header-action-btn {
+            padding: 8px 18px;
+            font-size: 0.82rem;
+            border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.1);
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: rgba(255,255,255,0.7);
+            background: rgba(255,255,255,0.06);
+        }
+        .header-action-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .logout-btn-header { background: rgba(239,68,68,0.1); color: #fca5a5; border-color: rgba(239,68,68,0.15); }
+        .logout-btn-header:hover { background: rgba(239,68,68,0.2); }
+        .install-btn-header { background: rgba(16,185,129,0.1); color: #34d399; border-color: rgba(16,185,129,0.15); }
+        .install-btn-header:hover { background: rgba(16,185,129,0.2); }
+    </style>
+
+    <!-- Camera File Input (native camera) -->
+    <input type="file" id="cameraFileInput" accept="image/*" capture="environment" style="display: none;">
+    
+    <!-- Camera Analysis Modal -->
+    <div id="cameraModal" class="camera-modal" style="display: none;">
+        <div class="camera-modal-content">
+            <div class="camera-modal-header">
+                <h3><i class="fas fa-microscope"></i> AI Tree Analyzer</h3>
+                <button id="closeCameraBtn" class="close-btn">&times;</button>
+            </div>
+
+            <div id="photoPreviewSection">
+                <div class="camera-container">
+                    <canvas id="resultCanvas"></canvas>
+                    <canvas id="cameraCanvas" style="display: none;"></canvas>
+                    <video id="cameraVideo" style="display: none;" autoplay playsinline></video>
+                </div>
+
+                <div id="analysisStatus" style="text-align: center; padding: 16px; display: none;">
+                    <div style="width: 36px; height: 36px; border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #10b981; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 10px;"></div>
+                    <p style="color: #34d399; font-weight: 600;">Analyzing tree...</p>
+                    <small style="color: rgba(255,255,255,0.4);">🌳 DeepLab ADE20K + Edge Detection + Species Calibration</small>
+                    <div style="margin-top:8px;font-size:11px;color:rgba(255,255,255,0.3);">Person / bike / background ignored automatically</div>
+                    <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+                </div>
+
+                <div id="analysisError" style="display: none; text-align: center; padding: 16px; margin: 10px 16px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 12px;">
+                    <i class="fas fa-exclamation-triangle" style="color: #f87171; font-size: 20px; display: block; margin-bottom: 8px;"></i>
+                    <p id="analysisErrorText" style="color: #f87171; font-weight: 600; margin-bottom: 8px;"></p>
+                    <div style="display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;">
+                        <button id="retakeBtn" type="button" class="btn-secondary" style="background: rgba(245,158,11,0.15); color: #fbbf24; border-color: rgba(245,158,11,0.2); padding: 10px 24px; border-radius: 10px; cursor: pointer; font-weight: 600;">
+                            <i class="fas fa-camera"></i> Retake Photo
+                        </button>
+                        <button id="manualFallbackBtn" type="button" style="display: none; background: rgba(139,92,246,0.15); color: #a78bfa; border: 1px solid rgba(139,92,246,0.2); padding: 10px 24px; border-radius: 10px; cursor: pointer; font-weight: 600;">
+                            <i class="fas fa-hand-pointer"></i> Try Manual Select
+                        </button>
+                    </div>
+                </div>
+
+                <div class="camera-controls" style="padding: 12px 16px;">
+                    <button id="retakeTopBtn" type="button" class="btn-secondary" style="display: none; background: rgba(245,158,11,0.15); color: #fbbf24; border-color: rgba(245,158,11,0.2); padding: 10px 24px; border-radius: 10px; cursor: pointer; font-weight: 600;">
+                        <i class="fas fa-redo"></i> Retake Photo
+                    </button>
+                </div>
+            </div>
+
+            <div id="measurementResults" style="display: none;">
+                <div class="measurement-result-card">
+                    <h4><i class="fas fa-chart-bar"></i> AI Detection Results</h4>
+                    <div class="measurement-values" style="text-align: center;">
+                        <p class="highlight-row" style="margin: 20px 0;">
+                            <strong style="font-size: 1.1em;"><i class="fas fa-circle-notch" style="color:#10b981;"></i> Circumference (DBH)</strong>
+                            <br>
+                            <span id="detectedCircumference"
+                                onclick="document.getElementById('useMeasurementBtn').click()"
+                                title="Tap to auto-fill"
+                                style="color: #10b981; font-size: 2.2em; font-weight: bold; display: block; margin: 10px 0; cursor: pointer; border: 2px dashed rgba(16,185,129,0.4); border-radius: 12px; padding: 6px 16px; transition: all 0.2s;"
+                                onmouseover="this.style.background='rgba(16,185,129,0.15)'"
+                                onmouseout="this.style.background='transparent'">
+                                -
+                            </span>
+                            <span style="font-size: 1.4em; color: rgba(255,255,255,0.8);">cm</span>
+                            <div style="font-size:11px; color:rgba(16,185,129,0.6); margin-top:4px;"><i class="fas fa-hand-pointer"></i> Tap value to auto-fill</div>
+                        </p>
+                        
+                        <!-- Advanced Measurements Grid -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 16px 0; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.06);">
+                            <div style="padding: 10px; background: rgba(59,130,246,0.08); border-radius: 10px; border: 1px solid rgba(59,130,246,0.15);">
+                                <div style="font-size: 11px; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.5px;"><i class="fas fa-arrows-alt-h"></i> Diameter</div>
+                                <div style="font-size: 1.5em; font-weight: 700; color: #60a5fa;"><span id="detectedDiameter">-</span> <span style="font-size: 0.5em; color: rgba(255,255,255,0.5);">cm</span></div>
+                            </div>
+                            <div style="padding: 10px; background: rgba(245,158,11,0.08); border-radius: 10px; border: 1px solid rgba(245,158,11,0.15);">
+                                <div style="font-size: 11px; color: #fcd34d; text-transform: uppercase; letter-spacing: 0.5px;"><i class="fas fa-ring"></i> Girth</div>
+                                <div style="font-size: 1.5em; font-weight: 700; color: #fbbf24;"><span id="detectedGirth">-</span> <span style="font-size: 0.5em; color: rgba(255,255,255,0.5);">cm</span></div>
+                            </div>
+                            <div style="padding: 10px; background: rgba(16,185,129,0.08); border-radius: 10px; border: 1px solid rgba(16,185,129,0.15);">
+                                <div style="font-size: 11px; color: #6ee7b7; text-transform: uppercase; letter-spacing: 0.5px;"><i class="fas fa-arrows-alt-v"></i> Height</div>
+                                <div style="font-size: 1.5em; font-weight: 700; color: #34d399;"><span id="detectedHeight">-</span> <span style="font-size: 0.5em; color: rgba(255,255,255,0.5);">cm</span></div>
+                            </div>
+                            <div style="padding: 10px; background: rgba(139,92,246,0.08); border-radius: 10px; border: 1px solid rgba(139,92,246,0.15);">
+                                <div style="font-size: 11px; color: #c4b5fd; text-transform: uppercase; letter-spacing: 0.5px;"><i class="fas fa-ruler-horizontal"></i> Trunk Width</div>
+                                <div style="font-size: 1.5em; font-weight: 700; color: #a78bfa;"><span id="detectedTrunkWidth">-</span> <span style="font-size: 0.5em; color: rgba(255,255,255,0.5);">cm</span></div>
+                            </div>
+                        </div>
+                        
+                        <p style="margin-top: 16px;"><strong><i class="fas fa-bullseye" style="color:#f59e0b;"></i> Confidence</strong> <span id="detectedConfidence" style="color: #fbbf24; font-size: 1.2em; font-weight: 600;">-</span>%</p>
+                    </div>
+                    <button id="useMeasurementBtn" type="button" class="btn-primary use-measurement-btn">
+                        <i class="fas fa-check-circle"></i> Use This Measurement
+                    </button>
+                </div>
+            </div>
+
+            <div id="measurementStep" style="display: none;">
+                <div style="margin: 10px 0;">
+                    <label>Reference Width (pixels): <span id="pixelWidth">0</span></label>
+                </div>
+                <button id="calculateMeasurementBtn" type="button" class="btn-primary" disabled>
+                    <i class="fas fa-calculator"></i> Calculate
+                </button>
+            </div>
+
+            <div class="reference-selector" style="margin: 8px 16px; padding: 10px; background: rgba(16,185,129,0.06); border-radius: 10px; border: 1px solid rgba(16,185,129,0.15);">
+                <label style="font-size: 12px; color: #94a3b8; display: block; margin-bottom: 6px;">
+                    <i class="fas fa-ruler" style="color:#10b981;"></i> Reference Object (for accuracy):
+                </label>
+                <select id="referenceObject" class="reference-select" style="width: 100%; padding: 8px 12px; background: rgba(30,41,59,0.8); border: 1px solid rgba(16,185,129,0.3); border-radius: 8px; color: #e2e8f0; font-size: 13px;">
+                    <option value="none">🤖 Auto-detect (AI will find references)</option>
+                    <option value="person">🧍 Person standing next to tree</option>
+                    <option value="credit-card">💳 Credit Card on trunk (8.5 cm)</option>
+                    <option value="coin-10rs">🪙 ₹10 Coin on trunk (2.7 cm)</option>
+                    <option value="coin-5rs">🪙 ₹5 Coin on trunk (2.3 cm)</option>
+                    <option value="a4-paper">📄 A4 Paper on trunk (21 cm)</option>
+                    <option value="ruler-30cm">📏 30cm Ruler (30 cm)</option>
+                    <option value="custom">✏️ Custom Size</option>
+                </select>
+                <div id="customSizeInput" style="display: none; margin-top: 6px;">
+                    <input type="number" id="customWidth" step="0.1" min="0.1" placeholder="Width in cm" style="width: 100%; padding: 8px 12px; background: rgba(30,41,59,0.8); border: 1px solid rgba(16,185,129,0.3); border-radius: 8px; color: #e2e8f0; font-size: 13px;">
+                </div>
+                <small style="color: rgba(255,255,255,0.3); font-size: 10px; display: block; margin-top: 4px;">
+                    💡 For better accuracy — place a person or card near the trunk
+                </small>
+            </div>
+        </div>
+    </div>
+
+    <!-- ML Tree Measurement Script -->
+    <script src="real-world-measurement.js"></script>
+    <script src="ml-tree-measurement.js"></script>
+    <script src="advanced-ml-measurement.js"></script>
+    <script src="camera-handler.js"></script>
+    <script src="camera-photo-guide.js"></script>
+</body>
+</html>

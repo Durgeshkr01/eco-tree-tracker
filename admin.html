@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - EcoTree Tracker</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <script>
+        const adminSession = localStorage.getItem('adminSession');
+        if (!adminSession) window.location.href = 'admin-login.html';
+    </script>
+
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Inter','Segoe UI',sans-serif;background:#0a1628;color:#fff;min-height:100vh}
+
+        /* Top Navigation */
+        .top-nav{position:fixed;top:0;left:0;right:0;height:64px;padding:0 24px;display:flex;justify-content:space-between;align-items:center;background:rgba(10,22,40,.85);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid rgba(255,255,255,.06);z-index:9999}
+        .nav-brand{display:flex;align-items:center;gap:12px;font-size:1.05rem;font-weight:700;color:rgba(255,255,255,.9)}
+        .nav-brand i{font-size:20px;color:#10b981}
+        .nav-actions{display:flex;align-items:center;gap:12px}
+        .nav-user{color:rgba(255,255,255,.5);font-size:.82rem;font-weight:500;display:none}
+        @media(min-width:600px){.nav-user{display:block}}
+        .btn-logout{padding:8px 18px;background:rgba(239,68,68,.1);color:#fca5a5;border:1px solid rgba(239,68,68,.15);border-radius:10px;cursor:pointer;font-family:inherit;font-size:.82rem;font-weight:600;transition:all .3s;display:flex;align-items:center;gap:6px}
+        .btn-logout:hover{background:rgba(239,68,68,.2);color:#fecaca}
+
+        /* Main Container */
+        .admin-container{max-width:1200px;margin:0 auto;padding:80px 20px 40px}
+
+        /* Welcome Header */
+        .dash-header{margin-bottom:32px;animation:fadeIn .6s ease-out}
+        .dash-header h1{font-size:1.8rem;font-weight:800;color:rgba(255,255,255,.95);margin-bottom:4px}
+        .dash-header p{color:rgba(255,255,255,.4);font-size:.9rem}
+        @keyframes fadeIn{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:translateY(0)}}
+
+        /* Stats Grid */
+        .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:28px;animation:fadeIn .7s ease-out}
+        .stat-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:22px 20px;transition:all .3s;position:relative;overflow:hidden}
+        .stat-card:hover{background:rgba(255,255,255,.06);transform:translateY(-2px);box-shadow:0 12px 32px rgba(0,0,0,.2)}
+        .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:3px 3px 0 0}
+        .stat-card:nth-child(1)::before{background:linear-gradient(90deg,#6366f1,#8b5cf6)}
+        .stat-card:nth-child(2)::before{background:linear-gradient(90deg,#10b981,#34d399)}
+        .stat-card:nth-child(3)::before{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+        .stat-card:nth-child(4)::before{background:linear-gradient(90deg,#3b82f6,#60a5fa)}
+        .stat-icon{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:14px}
+        .stat-card:nth-child(1) .stat-icon{background:rgba(99,102,241,.12);color:#a78bfa}
+        .stat-card:nth-child(2) .stat-icon{background:rgba(16,185,129,.12);color:#34d399}
+        .stat-card:nth-child(3) .stat-icon{background:rgba(245,158,11,.12);color:#fbbf24}
+        .stat-card:nth-child(4) .stat-icon{background:rgba(59,130,246,.12);color:#60a5fa}
+        .stat-label{font-size:.75rem;font-weight:600;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+        .stat-value{font-size:1.8rem;font-weight:800;color:rgba(255,255,255,.95)}
+
+        /* Pass Code Card */
+        .pass-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:20px;padding:28px;margin-bottom:28px;animation:fadeIn .8s ease-out}
+        .pass-card-header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+        .pass-card-header h2{font-size:1.1rem;font-weight:700;color:rgba(255,255,255,.9)}
+        .pass-card-header i{color:#a78bfa;font-size:18px}
+        .pass-code-display{background:rgba(99,102,241,.08);border:1px dashed rgba(99,102,241,.25);border-radius:14px;padding:20px;text-align:center;margin-bottom:16px}
+        .pass-code-text{font-size:2.2rem;font-weight:800;letter-spacing:8px;font-family:'Courier New',monospace;color:#a78bfa}
+        .pass-hint{color:rgba(255,255,255,.35);font-size:.8rem;margin-top:8px}
+        .pass-actions{display:flex;flex-wrap:wrap;gap:10px}
+        .pass-btn{padding:10px 20px;border-radius:12px;border:none;cursor:pointer;font-family:inherit;font-size:.82rem;font-weight:600;transition:all .3s;display:flex;align-items:center;gap:6px}
+        .pass-btn.primary{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff}
+        .pass-btn.primary:hover{box-shadow:0 8px 24px rgba(99,102,241,.3);transform:translateY(-1px)}
+        .pass-btn.secondary{background:rgba(255,255,255,.06);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.1)}
+        .pass-btn.secondary:hover{background:rgba(255,255,255,.1)}
+        .pass-btn.danger{background:rgba(239,68,68,.1);color:#fca5a5;border:1px solid rgba(239,68,68,.15)}
+        .pass-btn.danger:hover{background:rgba(239,68,68,.2)}
+
+        /* Tabs */
+        .tab-bar{display:flex;gap:4px;padding:4px;background:rgba(255,255,255,.04);border-radius:14px;margin-bottom:20px;animation:fadeIn .9s ease-out}
+        .tab-btn{flex:1;padding:12px 16px;border:none;border-radius:11px;font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;transition:all .3s;background:transparent;color:rgba(255,255,255,.4);display:flex;align-items:center;justify-content:center;gap:8px}
+        .tab-btn.active{background:rgba(99,102,241,.15);color:#a78bfa;box-shadow:0 2px 8px rgba(99,102,241,.1)}
+        .tab-content{display:none;animation:fadeIn .4s ease-out}
+        .tab-content.active{display:block}
+
+        /* Table */
+        .table-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:16px;overflow:hidden}
+        .table-card table{width:100%;border-collapse:collapse}
+        .table-card th{background:rgba(255,255,255,.04);color:rgba(255,255,255,.5);padding:14px 16px;text-align:left;font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid rgba(255,255,255,.06)}
+        .table-card td{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.04);color:rgba(255,255,255,.75);font-size:.88rem}
+        .table-card tr:hover td{background:rgba(255,255,255,.03)}
+        .table-card td.empty{text-align:center;color:rgba(255,255,255,.3);padding:40px 16px}
+        .btn-view{padding:6px 14px;background:rgba(16,185,129,.12);color:#34d399;border:1px solid rgba(16,185,129,.2);border-radius:8px;cursor:pointer;font-family:inherit;font-size:.78rem;font-weight:600;transition:all .3s}
+        .btn-view:hover{background:rgba(16,185,129,.2)}
+        .table-responsive{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+        /* Heatmap */
+        .heatmap-header{margin-bottom:16px}
+        .heatmap-header h2{font-size:1.15rem;font-weight:700;color:rgba(255,255,255,.9);display:flex;align-items:center;gap:10px;margin-bottom:4px}
+        .heatmap-header p{color:rgba(255,255,255,.4);font-size:.85rem}
+        .legend-bar{display:flex;gap:16px;flex-wrap:wrap;align-items:center;padding:14px 18px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);border-radius:12px;margin-bottom:16px;font-size:.8rem;color:rgba(255,255,255,.5)}
+        .legend-item{display:flex;align-items:center;gap:6px}
+        .legend-dot{width:28px;height:14px;border-radius:4px}
+        #heatMap{height:500px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+
+        /* Modal */
+        .modal{display:none;position:fixed;z-index:10000;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+        .modal.active{display:flex;align-items:center;justify-content:center;animation:fadeIn .3s}
+        .modal-content{background:#111d33;border:1px solid rgba(255,255,255,.08);padding:32px;border-radius:20px;max-width:560px;width:90%;max-height:80vh;overflow-y:auto;animation:slideUp .3s}
+        @keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+        .modal-close{float:right;font-size:24px;cursor:pointer;color:rgba(255,255,255,.4);transition:color .3s;background:none;border:none;padding:4px 8px}
+        .modal-close:hover{color:#fff}
+        .modal-content h2{font-size:1.15rem;font-weight:700;color:rgba(255,255,255,.9);margin-bottom:20px}
+        .detail-row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.88rem}
+        .detail-row span:first-child{color:rgba(255,255,255,.45)}
+        .detail-row strong{color:#a78bfa;font-weight:600}
+
+        /* Responsive */
+        @media(max-width:768px){
+            .stats-grid{grid-template-columns:repeat(2,1fr);gap:12px}
+            .stat-value{font-size:1.4rem}
+            .pass-code-text{font-size:1.6rem;letter-spacing:5px}
+            .pass-actions{flex-direction:column}
+            .pass-btn{justify-content:center}
+            .tab-btn{font-size:.78rem;padding:10px 12px}
+            #heatMap{height:350px}
+            .admin-container{padding:76px 16px 24px}
+            .dash-header h1{font-size:1.4rem}
+        }
+        @media(max-width:480px){
+            .stats-grid{grid-template-columns:1fr 1fr;gap:10px}
+            .stat-card{padding:16px 14px}
+            .stat-value{font-size:1.2rem}
+            .stat-icon{width:36px;height:36px;font-size:15px;margin-bottom:10px}
+        }
+    </style>
+</head>
+<body>
+    <!-- Top Navigation -->
+    <nav class="top-nav">
+        <div class="nav-brand">
+            <i class="fas fa-tree"></i>
+            <span>EcoTree Admin</span>
+        </div>
+        <div class="nav-actions">
+            <span class="nav-user" id="navUser"></span>
+            <button class="btn-logout" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+        </div>
+    </nav>
+
+    <div class="admin-container">
+        <div id="dashboardSection" class="dashboard-section active">
+            <!-- Welcome Header -->
+            <div class="dash-header">
+                <h1 id="welcomeText">Admin Dashboard</h1>
+                <p>Manage users, access codes, and view environmental impact data</p>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-users"></i></div>
+                    <div class="stat-label">Active Users</div>
+                    <div class="stat-value" id="activeStudents">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-tree"></i></div>
+                    <div class="stat-label">Trees Logged</div>
+                    <div class="stat-value" id="totalTrees">0</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="fas fa-map-marker-alt"></i></div>
+                    <div class="stat-label">Locations</div>
+                    <div class="stat-value" id="totalLocations">0</div>
+                </div>
+            </div>
+
+            <!-- Pass Code Card -->
+            <div class="pass-card">
+                <div class="pass-card-header">
+                    <i class="fas fa-key"></i>
+                    <h2>User Access Code</h2>
+                </div>
+                <div class="pass-code-display">
+                    <div class="pass-code-text" id="passCodeDisplay">- - - - -</div>
+                    <p class="pass-hint">Share this code with your users to allow data collection</p>
+                </div>
+                <div class="pass-actions">
+                    <button class="pass-btn primary" onclick="generateNewPass()"><i class="fas fa-key"></i> Get/View Code</button>
+                    <button class="pass-btn secondary" onclick="copyPassCode()"><i class="fas fa-copy"></i> Copy</button>
+                    <button class="pass-btn danger" onclick="deactivatePass()"><i class="fas fa-ban"></i> Deactivate</button>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tab-bar">
+                <button class="tab-btn active" onclick="switchTab('students', this)"><i class="fas fa-table"></i> User Data</button>
+                <button class="tab-btn" onclick="switchTab('heatmap', this)"><i class="fas fa-map"></i> Heat Map</button>
+            </div>
+
+            <!-- Users Data Tab -->
+            <div id="studentsTab" class="tab-content active">
+                <div class="table-card">
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Tree</th>
+                                    <th>Method / Forest</th>
+                                    <th>Location</th>
+                                    <th>Date</th>
+
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentsTableBody">
+                                <tr><td colspan="6" class="empty"><i class="fas fa-inbox" style="font-size:24px;display:block;margin-bottom:8px;opacity:.4"></i>No submissions yet</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Heat Map Tab -->
+            <div id="heatmapTab" class="tab-content">
+                <div class="heatmap-header">
+                    <h2><i class="fas fa-fire"></i> Carbon Sequestration Heat Map</h2>
+                    <p>Intensity visualization across all recorded tree locations</p>
+                </div>
+                <div class="legend-bar">
+                    <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(90deg,#00ff00,#7fff00)"></div><span>Low (0-30%)</span></div>
+                    <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(90deg,#ffff00,#ffa500)"></div><span>Medium (30-60%)</span></div>
+                    <div class="legend-item"><div class="legend-dot" style="background:linear-gradient(90deg,#ff4500,#ff0000)"></div><span>High (60-100%)</span></div>
+                </div>
+                <div id="heatMap"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Detail Modal -->
+    <div id="detailModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()">&times;</button>
+            <h2 id="modalTitle"><i class="fas fa-file-alt"></i> Submission Details</h2>
+            <div id="modalBody"></div>
+        </div>
+    </div>
+
+    <script type="module" src="firebase-config.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script type="module" src="admin-dashboard.js?v=4"></script>
+
+    <script>
+        // Set welcome text
+        try {
+            const session = JSON.parse(localStorage.getItem('adminSession'));
+            if (session && session.name) {
+                document.getElementById('welcomeText').textContent = 'Welcome, ' + session.name;
+                document.getElementById('navUser').textContent = session.name;
+            }
+        } catch(e) {}
+
+        window.logout = () => {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('adminSession');
+                window.location.href = 'login.html';
+            }
+        };
+    </script>
+</body>
+</html>

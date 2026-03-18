@@ -1,0 +1,1 @@
+MediaID	TaxonID	Type	Subtype	Format	Subject	Title	Description	AccessURI	ThumbnailURL	FurtherInformationURL	DerivedFrom	CreateDate	Modified	Language	Rating	Audience	License	Rights	Owner	BibliographicCitation	Publisher	Contributor	Creator	AgentID	LocationCreated	GenericLocation	Latitude	Longitude	Altitude	ReferenceID

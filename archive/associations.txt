@@ -1,0 +1,1 @@
+AssociationID	Occurrence ID	Association Type	Target Occurrence ID	Determined Date	Determined By	Measurement Method	Remarks	Source	Citation	Contributor	ReferenceID
